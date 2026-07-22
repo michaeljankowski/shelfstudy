@@ -15,9 +15,35 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
-*~
+
+.env
+.env.local
+.env*.local
+
+node_modules/
+package-lock.json
+
+uploads/
+temp/
+
+.vercel
+.netlify
+
+#database
+*.db
+*.sqlite
+*.sqlite3
 
 # Build / output
 dist/
 build/
 *.log
+*.tsbuildinfo
+
+# Playwright CLI session artifacts (snapshots, console logs)
+.playwright-cli/
+
+# Claude Code local tooling — not part of the project itself
+.claude/
+.mcp.json
+.planning/

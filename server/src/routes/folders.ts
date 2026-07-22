@@ -3,11 +3,11 @@ import { supabase } from '../config/supabase.js';
 
 const router = Router();
 
-// Get all classes
+// Get all folders
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from('classes')
+      .from('folders')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -15,23 +15,23 @@ router.get('/', async (req, res) => {
 
     res.json(data);
   } catch (error: any) {
-    console.error('Error fetching classes:', error.message);
-    res.status(500).json({ error: 'Failed to fetch classes' });
+    console.error('Error fetching folders:', error.message);
+    res.status(500).json({ error: 'Failed to fetch folders' });
   }
 });
 
-// Create a new class
+// Create a new folder
 router.post('/', async (req, res) => {
   try {
-    const { name, folder_id } = req.body;
+    const { name, icon } = req.body;
 
     if (!name || typeof name !== 'string') {
-      return res.status(400).json({ error: 'Class name is required' });
+      return res.status(400).json({ error: 'Folder name is required' });
     }
 
     const { data, error } = await supabase
-      .from('classes')
-      .insert({ name, folder_id: folder_id ?? null })
+      .from('folders')
+      .insert({ name, icon: icon ?? null })
       .select()
       .single();
 
@@ -39,18 +39,18 @@ router.post('/', async (req, res) => {
 
     res.json(data);
   } catch (error: any) {
-    console.error('Error creating class:', error.message);
-    res.status(500).json({ error: 'Failed to create class' });
+    console.error('Error creating folder:', error.message);
+    res.status(500).json({ error: 'Failed to create folder' });
   }
 });
 
-// Get single class
+// Get a single folder
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
     const { data, error } = await supabase
-      .from('classes')
+      .from('folders')
       .select('*')
       .eq('id', id)
       .single();
@@ -59,27 +59,27 @@ router.get('/:id', async (req, res) => {
 
     res.json(data);
   } catch (error: any) {
-    console.error('Error fetching class:', error.message);
-    res.status(404).json({ error: 'Class not found' });
+    console.error('Error fetching folder:', error.message);
+    res.status(404).json({ error: 'Folder not found' });
   }
 });
 
-// Update a class (rename and/or move between folders)
+// Update a folder (rename and/or change icon)
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, folder_id } = req.body;
+    const { name, icon } = req.body;
 
     if (name !== undefined && typeof name !== 'string') {
-      return res.status(400).json({ error: 'Class name must be a string' });
+      return res.status(400).json({ error: 'Folder name must be a string' });
     }
 
     const update: Record<string, unknown> = {};
     if (name !== undefined) update.name = name;
-    if (folder_id !== undefined) update.folder_id = folder_id;
+    if (icon !== undefined) update.icon = icon;
 
     const { data, error } = await supabase
-      .from('classes')
+      .from('folders')
       .update(update)
       .eq('id', id)
       .select()
@@ -89,28 +89,27 @@ router.put('/:id', async (req, res) => {
 
     res.json(data);
   } catch (error: any) {
-    console.error('Error updating class:', error.message);
-    res.status(500).json({ error: 'Failed to update class' });
+    console.error('Error updating folder:', error.message);
+    res.status(500).json({ error: 'Failed to update folder' });
   }
 });
 
-// Delete a class
+// Delete a folder (classes inside it are unassigned, not deleted, via ON DELETE SET NULL)
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Supabase will cascade delete notes because of ON DELETE CASCADE
     const { error } = await supabase
-      .from('classes')
+      .from('folders')
       .delete()
       .eq('id', id);
 
     if (error) throw error;
 
-    res.json({ message: 'Class deleted successfully' });
+    res.json({ message: 'Folder deleted successfully' });
   } catch (error: any) {
-    console.error('Error deleting class:', error.message);
-    res.status(500).json({ error: 'Failed to delete class' });
+    console.error('Error deleting folder:', error.message);
+    res.status(500).json({ error: 'Failed to delete folder' });
   }
 });
 

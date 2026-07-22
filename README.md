@@ -23,8 +23,4 @@ Then visit http://localhost:8000 (or the port shown).
 - `js/` – app logic
 - `README.md` – this file
 
-## Next steps
 
-- Add persistence (e.g. `localStorage` or a backend)
-- Add create/edit/delete for notes
-- Add categories or tags
