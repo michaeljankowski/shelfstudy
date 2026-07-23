@@ -49,3 +49,6 @@ build/
 .planning/
 CLAUDE.md
 DESIGNER_BRIEF.md
+
+# Design reference mockups — local reference only, not project assets
+designimages/

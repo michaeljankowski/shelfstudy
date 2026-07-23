@@ -6,8 +6,8 @@
 
 ---
 
-**Project:** StudyNotes — class-organized note uploads with an AI study assistant (chat + quiz generation)
-**Category:** Productivity / Education app (dark-mode app shell, not a landing page)
+**Project:** ShelfStudy — class-organized note uploads with an AI study assistant (chat + quiz generation)
+**Category:** Productivity / Education app (cream, serif "bookshelf" shell, not a landing page)
 **Stack:** React + Vite (TypeScript), plain CSS with custom properties
 
 > This file codifies the design system that already exists in
@@ -18,40 +18,47 @@
 
 ## Global Rules
 
-### Color Palette (Dark, purple accent)
+### Color Palette (Cream, brown/gold accent)
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
-| Background (page) | `#0a0a0f` | `--bg-primary` |
-| Surface (sidebar, header) | `#12121a` | `--bg-secondary` |
-| Surface raised (inputs, hover) | `#1a1a26` | `--bg-tertiary` |
-| Border | `#2a2a3d` | `--border` |
-| Text primary | `#e8e8f0` | `--text-primary` |
-| Text secondary (body) | `#a0a0c0` | `--text-secondary` |
-| Text muted | `#6b6b8a` | `--text-muted` |
-| Accent (buttons, active) | `#844bd9` | `--accent` |
-| Accent hover | `#a343d7` | `--accent-hover` |
-| Success | `#44df77` | `--success` |
-| Error / destructive | `#ff6b6b` | `--error` |
-| Warning | `#f9ca24` | `--warning` |
+| Background (page) | `#faf3e7` | `--bg-primary` |
+| Surface (sidebar, header) | `#f1e6d3` | `--bg-secondary` |
+| Surface raised (inputs, hover) | `#e8ddc8` | `--bg-tertiary` |
+| Border | `#d9cbb0` | `--border` |
+| Text primary | `#3d2f1f` | `--text-primary` |
+| Text secondary (body) | `#6b5842` | `--text-secondary` |
+| Text muted | `#8a7355` | `--text-muted` |
+| Accent (buttons, active) | `#8a6d3f` | `--accent` |
+| Accent hover | `#a9835a` | `--accent-hover` |
+| Accent (rgb triplet) | `138, 109, 63` | `--accent-rgb` |
+| Success | `#6b8f47` | `--success` |
+| Error / destructive | `#b1503f` | `--error` |
+| Warning | `#c99a3e` | `--warning` |
 
-**Color Notes:** Deep near-black background with a single purple accent. Use accent
-only for primary actions and active state — not for large fills. Status colors
-(success/error/warning) are for feedback only. Maintain 4.5:1 text contrast:
-`--text-muted` (#6b6b8a) is borderline on `--bg-primary` — use it only for small,
-non-essential labels, never body copy.
+**Color Notes:** Warm cream background with a single brown/gold accent — a
+"bookshelf" feel, not a stark white app. Use accent only for primary actions and
+active state — not for large fills. Status colors (success/error/warning) are
+for feedback only. Focus rings and soft tinted fills reuse `--accent-rgb` at
+low opacity (`rgba(var(--accent-rgb), 0.1–0.3)`) rather than a second accent
+color. Maintain 4.5:1 text contrast: `--text-muted` (~3.9:1 on `--bg-primary`)
+is borderline — use it only for small, non-essential labels, never body copy.
 
 ### Typography
 
-- **Font:** System stack — `-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif`
+- **Body/serif font:** `'Source Serif 4', Georgia, serif` — self-hosted variable
+  font (`client/public/fonts/SourceSerif4.woff2`), no Google Fonts runtime request.
+- **Heading font:** `'Lora', Georgia, 'Times New Roman', serif` — self-hosted
+  (`client/public/fonts/Lora.woff2`), used on `h1`/`h2`/`h3`.
 - **Body line-height:** `1.6`
-- **Scale (current):** body `0.875rem` (14px) · subtitle `0.75rem` (12px) · section heading `1.5rem` (24px) · brand `1.25rem` (20px)
-- **Mood:** clean, focused, neutral — content (the notes) is the hero, the chrome stays quiet.
+- **Scale (current):** subtitle `0.75rem` (12px) · body `0.875rem`–`1rem` (14–16px)
+  · section heading `1.25rem`–`1.5rem` (20–24px) · display/hero `3rem` (48px)
+- **Mood:** warm, literary, unhurried — like an actual shelf of study notes, not
+  a SaaS dashboard.
 
-> Keeping the system font is intentional: zero load cost, native feel, no FOUT.
-> If a more branded feel is wanted later, **Inter** is the lowest-risk upgrade
-> (near-identical metrics). Do **not** introduce a monospace heading font — it
-> reads as "code editor," wrong for study notes.
+> Fonts are self-hosted variable fonts (one file covers the full weight range,
+> `font-weight: 400 700`) — do not add a Google Fonts `<link>` or swap to a
+> sans-serif system stack; the serif pairing is the core of the ShelfStudy look.
 
 ### Spacing Variables
 
@@ -70,18 +77,19 @@ non-essential labels, never body copy.
 |-------|-------|-------|
 | `--radius` | `8px` | Buttons, inputs, cards (matches existing) |
 | `--radius-lg` | `12px` | Modals, large panels |
+| `--radius-pill` | `999px` | Pills, tags, badges |
 | transition | `150–300ms ease` | All hovers/state changes (existing uses `0.2s`–`0.3s`) |
 
-### Shadow Depths (tuned for dark bg)
+### Shadow Depths (tuned for cream bg)
 
 | Level | Value | Usage |
 |-------|-------|-------|
-| `--shadow-sm` | `0 1px 2px rgba(0,0,0,0.4)` | Subtle lift |
-| `--shadow-md` | `0 4px 12px rgba(0,0,0,0.5)` | Cards, dropdowns |
-| `--shadow-lg` | `0 12px 32px rgba(0,0,0,0.6)` | Modals, popovers |
+| `--shadow-sm` | `0 1px 2px rgba(61, 47, 31, 0.08)` | Subtle lift |
+| `--shadow-md` | `0 4px 12px rgba(61, 47, 31, 0.12)` | Cards, dropdowns |
+| `--shadow-lg` | `0 12px 32px rgba(61, 47, 31, 0.16)` | Modals, popovers |
 
-On a near-black background, lean on **borders and surface elevation**
-(`--bg-secondary` → `--bg-tertiary`) more than shadows to separate layers.
+Shadows are tinted with `--text-primary` brown instead of pure black — pure
+black shadows read as muddy on a warm cream background.
 
 ---
 
@@ -170,14 +178,14 @@ This is a **two-pane app shell**, not a scrolling page:
 .input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(132, 75, 217, 0.25); /* visible focus ring */
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.25); /* visible focus ring */
 }
 ```
 
 ### Modals
 
 ```css
-.modal-overlay { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+.modal-overlay { background: rgba(61, 47, 31, 0.4); backdrop-filter: blur(4px); }
 .modal {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -193,17 +201,24 @@ This is a **two-pane app shell**, not a scrolling page:
 
 ## Style Guidelines
 
-**Style:** Dark Mode (deep near-black + single purple accent)
+**Style:** ShelfStudy (warm cream + brown/gold accent, serif typography)
 **Key effects:** subtle border-accent on hover, smooth 200ms transitions, visible
-focus rings, low white emission for long reading sessions.
+focus rings via `--accent-rgb`, literary/bookshelf mood over flat SaaS chrome.
 
 ---
 
 ## Anti-Patterns (Do NOT Use)
 
-- ❌ **Light mode default** — this app is dark-first.
-- ❌ **Emojis as icons** — current code uses `📚` for the empty state ([App.tsx](../../src/App.tsx)); replace with an SVG (Lucide/Heroicons). Applies to all UI glyphs.
-- ❌ **Second accent color** — keep purple as the only accent; status colors are for feedback only.
+- ❌ **Dark mode default** — this app is cream/light-first.
+- ❌ **Sans-serif system stack** — headings use Lora, body uses Source Serif 4;
+  don't fall back to `-apple-system`/`Segoe UI` for either.
+- ❌ **Google Fonts `<link>` / runtime font requests** — fonts are self-hosted
+  woff2 files in `client/public/fonts/`.
+- ❌ **Emojis as icons** — use the line-art icon set (atom, flask, calculator,
+  bar-chart, bookshelf, open-book, paw, sprout, globe, monitor) for folder/class
+  icons, SVG for everything else.
+- ❌ **Second accent color** — keep brown/gold as the only accent; status colors
+  are for feedback only.
 - ❌ **Layout-shifting hovers** — no `scale()` on grid tiles.
 - ❌ **`--text-muted` for body copy** — fails contrast; small labels only.
 - ❌ **Missing `cursor: pointer`** on clickable cards/rows.
@@ -216,11 +231,11 @@ focus rings, low white emission for long reading sessions.
 
 Before delivering any UI code, verify:
 
-- [ ] No emojis used as icons (use SVG: Lucide/Heroicons)
+- [ ] No emojis used as icons (use the ShelfStudy line-art icon set or SVG)
 - [ ] All icons from one consistent set, consistent sizing (24×24 viewBox)
 - [ ] `cursor-pointer` on all clickable elements
 - [ ] Hover states with smooth transitions (150–300ms), no layout shift
-- [ ] Text contrast ≥ 4.5:1 (watch `--text-muted` on dark bg)
+- [ ] Text contrast ≥ 4.5:1 (watch `--text-muted` on cream bg)
 - [ ] Focus states visible for keyboard navigation
 - [ ] Async buttons disabled + show loading state during requests
 - [ ] `prefers-reduced-motion` respected
