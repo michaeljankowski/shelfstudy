@@ -1,26 +1,46 @@
-# note_project
+# ShelfStudy
 
-A minimal notes app scaffold. Edit and extend as needed.
+An AI study-notes app. Organize class notes and chat with an AI that has read them —
+upload photos of handwritten pages, PDFs, PowerPoints, or Word docs, and ask questions,
+get explanations, or generate quizzes from the material.
 
-## Run locally
+## Stack
 
-Open `index.html` in a browser, or serve the folder:
+- **Client:** React 19 + Vite + TypeScript
+- **Server:** Express + TypeScript
+- **Database / storage:** Supabase
+- **AI:** OpenAI
+
+## Getting started
+
+Requires a Supabase project and an OpenAI API key.
 
 ```bash
-# Python
-python3 -m http.server 8000
+# Server
+cd server
+npm install
+cp .env.example .env   # fill in OPENAI_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+npm run dev             # http://localhost:3000
 
-# Node (if npx available)
-npx serve .
+# Client (separate terminal)
+cd client
+npm install
+npm run dev              # http://localhost:5173, proxies /api to :3000
 ```
-
-Then visit http://localhost:8000 (or the port shown).
 
 ## Project structure
 
-- `index.html` – entry page
-- `css/` – styles
-- `js/` – app logic
-- `README.md` – this file
+```
+client/     React app — components, API client, types
+server/     Express API — routes, services (OpenAI, storage, text extraction), Supabase config
+supabase/   Database migrations
+```
 
+## Scripts
 
+| | Client | Server |
+|---|---|---|
+| Dev server | `npm run dev` | `npm run dev` |
+| Typecheck | `npm run typecheck` | `npm run typecheck` |
+| Lint | `npm run lint` | — |
+| Build | `npm run build` | `npm run build` |
