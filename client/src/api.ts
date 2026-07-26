@@ -26,6 +26,9 @@ export const getClass = (id: number) =>
 export const getFolders = () =>
   axios.get<Folder[]>(`${API_BASE}/folders`);
 
+export const getFolder = (id: number) =>
+  axios.get<Folder>(`${API_BASE}/folders/${id}`);
+
 export const createFolder = (name: string, icon?: string | null) =>
   axios.post<Folder>(`${API_BASE}/folders`, { name, icon: icon ?? null });
 

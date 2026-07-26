@@ -1,11 +1,11 @@
 /* Self-hosted so there's no runtime request to fonts.googleapis.com.
    Both are variable fonts, so one file covers the whole weight range. */
 @font-face {
-  font-family: 'Lora';
+  font-family: 'Playfair Display';
   font-style: normal;
-  font-weight: 400 700;
+  font-weight: 400 900;
   font-display: swap;
-  src: url('/fonts/Lora.woff2') format('woff2');
+  src: url('/fonts/PlayfairDisplay.woff2') format('woff2');
 }
 
 @font-face {
@@ -70,7 +70,7 @@ body {
 }
 
 h1, h2, h3 {
-  font-family: 'Lora', Georgia, 'Times New Roman', serif;
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
 }
 
 /* two-column app shell: sidebar + main content */

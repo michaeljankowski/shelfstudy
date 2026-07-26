@@ -1,0 +1,176 @@
+.folders-panel {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+}
+
+.folders-grid-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-lg);
+}
+
+.folders-grid-header h1 {
+  font-size: 2rem;
+}
+
+.folders-grid-new {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.folders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-lg);
+}
+
+.folder-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-md);
+  transition: border-color 200ms ease, background 200ms ease;
+}
+
+.folder-card:hover {
+  border-color: var(--accent);
+}
+
+.folder-card-icon {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  background: var(--bg-primary);
+  border-radius: var(--radius);
+}
+
+.folder-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.folder-card-title-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.folder-card-title-row h3 {
+  font-size: 1.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-card-rename-input {
+  font: inherit;
+  font-size: 1.25rem;
+  font-family: 'Playfair Display', Georgia, serif;
+  background: var(--bg-primary);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 2px 6px;
+  color: var(--text-primary);
+  width: 100%;
+}
+
+.folder-card-menu-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+}
+
+.folder-card-menu-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.folder-card-menu {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  z-index: 10;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+}
+
+.folder-card-menu button {
+  background: none;
+  border: none;
+  border-radius: 0;
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-primary);
+}
+
+.folder-card-menu button:hover {
+  background: var(--bg-tertiary);
+}
+
+.folder-card-menu button.destructive {
+  color: var(--error);
+}
+
+.folder-card-meta {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Generic modal primitives — first use here, reusable by later phases */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(61, 47, 31, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-lg);
+  max-width: 420px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.modal h3 {
+  font-size: 1.25rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}

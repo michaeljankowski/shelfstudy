@@ -1,0 +1,71 @@
+.intro-hero {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  text-align: center;
+  padding: var(--space-xl);
+}
+
+.intro-hero-brand {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-size: 5.5rem;
+  color: var(--accent);
+  letter-spacing: 0.01em;
+}
+
+.intro-hero-brand-scramble {
+  font-size: 3.25rem;
+  letter-spacing: 0.04em;
+}
+
+.intro-hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  animation: intro-hero-fade-in 400ms ease;
+}
+
+.intro-hero-tagline {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+}
+
+/* Soft/secondary treatment (same token pairing as .btn-secondary) rather
+   than a solid --accent fill — matches the muted-tan pill in the mockup. */
+.intro-hero-cta {
+  margin-top: var(--space-md);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: 14px 32px;
+  border-radius: var(--radius-pill);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 200ms ease;
+}
+
+.intro-hero-cta:hover {
+  background: var(--bg-secondary);
+}
+
+@keyframes intro-hero-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-hero-content {
+    animation: none;
+  }
+}

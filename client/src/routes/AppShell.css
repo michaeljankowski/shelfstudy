@@ -1,0 +1,131 @@
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-shell-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-md) var(--space-xl);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.app-shell-wordmark {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-size: 1.5rem;
+  color: var(--accent);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.app-shell-search {
+  flex: 1;
+  max-width: 480px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 10px 16px;
+  color: var(--text-muted);
+}
+
+.app-shell-search input {
+  flex: 1;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+}
+
+.app-shell-search input::placeholder {
+  color: var(--text-muted);
+}
+
+.app-shell-search input:disabled {
+  cursor: not-allowed;
+}
+
+.app-shell-search input:focus {
+  outline: none;
+}
+
+.app-shell-header-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.app-shell-icon-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+}
+
+.app-shell-icon-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.app-shell-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.app-shell-nav {
+  width: 220px;
+  flex-shrink: 0;
+  padding: var(--space-lg) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  overflow-y: auto;
+}
+
+.app-shell-nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.app-shell-nav-item:not(.disabled):hover {
+  background: var(--bg-tertiary);
+}
+
+.app-shell-nav-item.active {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.app-shell-nav-item.disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.app-shell-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-lg) var(--space-xl) var(--space-xl);
+}
