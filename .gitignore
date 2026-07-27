@@ -50,6 +50,11 @@ build/
 CLAUDE.md
 DESIGNER_BRIEF.md
 
+# Private local development tooling and its artifacts
+codex-visual-runner/
+regression-agent/
+.playwright-mcp/
+
 # Design reference mockups — local reference only, not project assets
 designimages/
 
