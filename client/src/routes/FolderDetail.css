@@ -1,14 +1,15 @@
 .folder-detail-breadcrumb {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  margin-bottom: var(--space-lg);
+  gap: 14px;
+  font-size: 1.05rem;
+  line-height: 1.15;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
 }
 
 .folder-detail-breadcrumb a {
-  color: var(--text-muted);
+  color: var(--text-secondary);
   text-decoration: none;
 }
 
@@ -18,17 +19,183 @@
 
 .folder-detail-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: var(--space-lg);
+  min-height: 64px;
+  margin-bottom: 18px;
+  padding-right: 0;
 }
 
 .folder-detail-title-group {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: 12px;
 }
 
 .folder-detail-title-group h1 {
-  font-size: 2rem;
+  font-size: clamp(1.9rem, 2.2vw, 2.45rem);
+  font-weight: 400;
+  line-height: 1.05;
+}
+
+.folder-detail-title-group .folder-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius);
+}
+
+.folder-detail-title-group .folder-card-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.folder-detail-title-group .folder-card-meta {
+  margin-top: 4px;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.folder-detail-panel {
+  width: min(100%, 1080px);
+  min-height: 0;
+  padding: 28px 0 40px;
+  background: transparent;
+  border-radius: 0;
+}
+
+.folder-detail-panel .folders-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.folder-detail-panel .folder-card {
+  position: relative;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  min-height: 176px;
+  padding: 16px;
+  gap: 12px;
+  border-radius: var(--radius-lg);
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+
+.folder-detail-panel .folder-card:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
+}
+
+.folder-detail-panel .folder-card > .folder-card-icon {
+  width: 62px;
+  height: 72px;
+  border-radius: var(--radius);
+}
+
+.folder-detail-panel .folder-card-body {
+  min-width: 0;
+  flex: 1 1 130px;
+}
+
+.folder-detail-panel .folder-card-title-row h3 {
+  font-size: clamp(1.2rem, 1.3vw, 1.5rem);
+  line-height: 1.12;
+}
+
+.folder-detail-class-label {
+  min-width: 0;
+}
+
+.folder-detail-class-label p {
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: .95rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-detail-panel .folder-card-menu-btn {
+  margin-top: -6px;
+}
+
+.folder-detail-panel .folders-grid-new {
+  min-height: 44px;
+  width: auto;
+  padding: 9px 16px;
+  font-size: 1.1rem;
+  justify-content: center;
+}
+
+.folder-detail-card-date {
+  position: absolute;
+  left: 16px;
+  bottom: 12px;
+  font-size: .88rem;
+  line-height: 1.2;
+  color: var(--text-secondary);
+}
+
+.folder-detail-card-date span {
+  color: var(--text-muted);
+}
+
+.folder-detail-panel .folder-card-menu-btn:focus-visible,
+.folder-detail-panel .folders-grid-new:focus-visible,
+.folder-detail-panel .folder-card-rename-input:focus-visible {
+  outline: 3px solid rgba(var(--accent-rgb), .65);
+  outline-offset: 3px;
+}
+
+.folder-detail-panel .folder-detail-empty-state {
+  width: min(100%, 520px);
+  min-height: 184px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 24px;
+  text-align: left;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .folder-detail-panel *,
+  .folder-detail-panel *::before,
+  .folder-detail-panel *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media (max-width: 1300px) {
+  .folder-detail-panel .folders-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1000px) {
+  .folder-detail-breadcrumb { font-size: 1.1rem; margin-bottom: 20px; }
+  .folder-detail-header { min-height: 92px; margin-bottom: 20px; padding-right: 0; }
+  .folder-detail-title-group .folder-card-icon { width: 56px; height: 56px; }
+  .folder-detail-title-group .folder-card-icon svg { width: 30px; height: 30px; }
+  .folder-detail-title-group h1 { font-size: 2.15rem; }
+  .folder-detail-title-group .folder-card-meta { font-size: 1rem; }
+  .folder-detail-panel { padding: var(--space-md) 0 32px; }
+  .folder-detail-panel .folder-card { min-height: 220px; }
+  .folder-detail-panel .folder-card > .folder-card-icon { width: 92px; height: 110px; }
+  .folder-detail-panel .folders-grid-new { width: auto; }
+  .folder-detail-card-date { font-size: 1rem; }
+}
+
+@media (max-width: 620px) {
+  .folder-detail-header { align-items: flex-start; gap: 12px; }
+  .folder-detail-title-group { min-width: 0; }
+  .folder-detail-title-group h1 { font-size: 1.9rem; }
+  .folder-detail-panel .folders-grid { grid-template-columns: 1fr; }
+  .folder-detail-panel { padding-top: 0; }
+  .folder-detail-title-group .folder-card-icon { width: 42px; height: 42px; }
+  .folder-detail-title-group .folder-card-icon svg { width: 23px; height: 23px; }
+  .folder-detail-empty-state { padding: var(--space-lg); }
 }

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { supabase } from '../config/supabase.js';
 
 const router = Router();
+const folderIcons = new Set(['atom', 'flask', 'calculator', 'chart', 'books', 'notebook', 'paw', 'sprout', 'globe', 'monitor']);
 
 // Get all folders
 router.get('/', async (req, res) => {
@@ -28,10 +29,13 @@ router.post('/', async (req, res) => {
     if (!name || typeof name !== 'string') {
       return res.status(400).json({ error: 'Folder name is required' });
     }
+    if (typeof icon !== 'string' || !folderIcons.has(icon)) {
+      return res.status(400).json({ error: 'A valid folder icon is required' });
+    }
 
     const { data, error } = await supabase
       .from('folders')
-      .insert({ name, icon: icon ?? null })
+      .insert({ name, icon })
       .select()
       .single();
 
@@ -72,6 +76,9 @@ router.put('/:id', async (req, res) => {
 
     if (name !== undefined && typeof name !== 'string') {
       return res.status(400).json({ error: 'Folder name must be a string' });
+    }
+    if (icon !== undefined && (typeof icon !== 'string' || !folderIcons.has(icon))) {
+      return res.status(400).json({ error: 'Folder icon must be one of the supplied icons' });
     }
 
     const update: Record<string, unknown> = {};

@@ -60,3 +60,13 @@ designimages/
 
 # AI design-system tooling output — local reference only, not project assets
 client/design-system/
+
+# Local planning and agent documentation
+/docs/**/*.md
+
+# Local visual review captures
+/folder-layout-productivity-*.png
+/hero-*.png
+/icon-picker-*.png
+/initial.png
+/intro-latest.png

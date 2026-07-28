@@ -29,8 +29,8 @@ export const getFolders = () =>
 export const getFolder = (id: number) =>
   axios.get<Folder>(`${API_BASE}/folders/${id}`);
 
-export const createFolder = (name: string, icon?: string | null) =>
-  axios.post<Folder>(`${API_BASE}/folders`, { name, icon: icon ?? null });
+export const createFolder = (name: string, icon: string) =>
+  axios.post<Folder>(`${API_BASE}/folders`, { name, icon });
 
 export const updateFolder = (id: number, updates: { name?: string; icon?: string | null }) =>
   axios.put<Folder>(`${API_BASE}/folders/${id}`, updates);

@@ -1,5 +1,4 @@
-/* Self-hosted so there's no runtime request to fonts.googleapis.com.
-   Both are variable fonts, so one file covers the whole weight range. */
+/* Local fonts */
 @font-face {
   font-family: 'Playfair Display';
   font-style: normal;
@@ -23,24 +22,21 @@
 }
 
 :root {
-  /* backgrounds */
+  /* Colors */
   --bg-primary: #faf3e7;
   --bg-secondary: #f1e6d3;
   --bg-tertiary: #e8ddc8;
 
   --border: #d9cbb0;
 
-  /* text */
-  --text-primary: #3d2f1f;
-  --text-secondary: #6b5842;
-  --text-muted: #8a7355; /* ~3.9:1 on bg-primary, small labels only, not body copy */
+  --text-primary: #4a3521;
+  --text-secondary: #6d5338;
+  --text-muted: #887052; /* small labels only, not body copy */
 
-  /* accent */
   --accent: #8a6d3f;
   --accent-hover: #a9835a;
   --accent-rgb: 138, 109, 63; /* same as --accent, for rgba() opacity use */
 
-  /* status */
   --success: #6b8f47;
   --error: #b1503f;
   --warning: #c99a3e;
@@ -56,7 +52,6 @@
   --radius-lg: 12px;
   --radius-pill: 999px;
 
-  /* tinted with text-primary brown instead of pure black */
   --shadow-sm: 0 1px 2px rgba(61, 47, 31, 0.08);
   --shadow-md: 0 4px 12px rgba(61, 47, 31, 0.12);
   --shadow-lg: 0 12px 32px rgba(61, 47, 31, 0.16);
@@ -73,7 +68,6 @@ h1, h2, h3 {
   font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
 }
 
-/* two-column app shell: sidebar + main content */
 .app {
   display: grid;
   grid-template-columns: 280px 1fr;
@@ -92,7 +86,7 @@ h1, h2, h3 {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  position: relative; /* toggle button is positioned against this */
+  position: relative;
   transition: all 0.3s ease;
 }
 
@@ -275,6 +269,15 @@ input[type="text"]::placeholder {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .sidebar-toggle {

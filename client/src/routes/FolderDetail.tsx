@@ -1,11 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { MoreVertical, Plus, GraduationCap } from 'lucide-react';
+import StudyIcon, { STUDY_ICON_OPTIONS, StudyIconId } from '../components/StudyIcon';
 import AppShell from './AppShell';
 import { createClass, deleteClass, getClasses, getFolder, updateClass } from '../api';
 import { Class, Folder } from '../types';
+import { markFolderOpened } from '../utils/folderLastOpened';
 import './EntityGrid.css';
 import './FolderDetail.css';
+
+function classCardLabel(name: string) {
+  const match = name.match(/^([A-Za-z]{2,}\s*\d{2,4}[A-Za-z]?)\s*(?:—|–|-)\s*(.+)$/);
+  if (match) return { code: match[1], title: match[2] };
+  return { code: name, title: 'Study class' };
+}
 
 export default function FolderDetail() {
   const { folderId } = useParams<{ folderId: string }>();
@@ -19,6 +27,7 @@ export default function FolderDetail() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
+  const [newIcon, setNewIcon] = useState<StudyIconId | null>(null);
   const [creating, setCreating] = useState(false);
   const [renamingId, setRenamingId] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -32,6 +41,7 @@ export default function FolderDetail() {
 
   useEffect(() => {
     let cancelled = false;
+    markFolderOpened(id);
     setLoading(true);
     Promise.all([getFolder(id), getClasses()])
       .then(([folderRes, classesRes]) => {
@@ -54,13 +64,14 @@ export default function FolderDetail() {
 
   const handleCreate = async () => {
     const name = newName.trim();
-    if (!name) return;
+    if (!name || !newIcon) return;
     setCreating(true);
     try {
       const { data } = await createClass(name, id);
       setClasses((prev) => [data, ...prev]);
       setShowCreate(false);
       setNewName('');
+      setNewIcon(null);
     } catch {
       setError('Could not create the class. Try again.');
     } finally {
@@ -108,7 +119,7 @@ export default function FolderDetail() {
 
   return (
     <AppShell>
-      <div className="folders-panel">
+      <div className="folders-panel folder-detail-panel">
         <div className="folder-detail-breadcrumb">
           <Link to="/folders">My Folders</Link>
           <span>&gt;</span>
@@ -117,7 +128,7 @@ export default function FolderDetail() {
 
         <div className="folder-detail-header">
           <div className="folder-detail-title-group">
-            <div className="folder-card-icon" aria-hidden="true" />
+            <div className="folder-card-icon" aria-hidden="true"><StudyIcon icon={folder.icon} /></div>
             <div>
               <h1>{folder.name}</h1>
               <p className="folder-card-meta">
@@ -134,18 +145,29 @@ export default function FolderDetail() {
         {error && <div className="error">{error}</div>}
 
         {classes.length === 0 ? (
-          <div className="empty-state">
+          <div className="empty-state folder-detail-empty-state">
             <GraduationCap size={40} className="empty-state-icon" aria-hidden="true" />
             <h3>No classes yet</h3>
             <p>Add one to start uploading notes.</p>
           </div>
         ) : (
           <div className="folders-grid">
-            {classes.map((cls) => (
-              <div
+            {classes.map((cls) => {
+              const label = classCardLabel(cls.name);
+              return (
+                <div
                 key={cls.id}
                 className="folder-card"
+                role="link"
+                tabIndex={0}
+                aria-label={`Open class ${cls.name}`}
                 onClick={() => renamingId !== cls.id && navigate(`/folders/${id}/classes/${cls.id}`)}
+                onKeyDown={(e) => {
+                  if (renamingId !== cls.id && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    navigate(`/folders/${id}/classes/${cls.id}`);
+                  }
+                }}
               >
                 <div className="folder-card-icon" aria-hidden="true" />
                 <div className="folder-card-body">
@@ -164,12 +186,16 @@ export default function FolderDetail() {
                         onBlur={() => handleRename(cls.id)}
                       />
                     ) : (
-                      <h3>{cls.name}</h3>
+                      <div className="folder-detail-class-label">
+                        <h3>{label.code}</h3>
+                        <p>{label.title}</p>
+                      </div>
                     )}
                     <button
                       type="button"
                       className="folder-card-menu-btn"
                       aria-label={`Options for ${cls.name}`}
+                      aria-expanded={openMenuId === cls.id}
                       onClick={(e) => {
                         e.stopPropagation();
                         setOpenMenuId((prev) => (prev === cls.id ? null : cls.id));
@@ -196,16 +222,27 @@ export default function FolderDetail() {
                     )}
                   </div>
                 </div>
+                <p className="folder-detail-card-date">Last opened: <span aria-label="Last opened date unavailable">—</span></p>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
 
       {showCreate && (
-        <div className="modal-overlay" onClick={() => setShowCreate(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Add class</h3>
+        <div className="modal-overlay" onClick={() => !creating && setShowCreate(false)}>
+          <div
+            className="modal icon-picker-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-class-title"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' && !creating) setShowCreate(false);
+            }}
+          >
+            <h3 id="add-class-title">Add class</h3>
             <input
               autoFocus
               type="text"
@@ -214,11 +251,23 @@ export default function FolderDetail() {
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
             />
+            <fieldset className="icon-picker-fieldset">
+              <legend>Choose an icon <span aria-hidden="true">(required)</span></legend>
+              <div className="icon-picker-grid">
+                {STUDY_ICON_OPTIONS.map((option) => (
+                  <button key={option.id} type="button" className="icon-picker-option" aria-pressed={newIcon === option.id} aria-label={`Choose ${option.label} icon`} onClick={() => setNewIcon(option.id)}>
+                    <StudyIcon icon={option.id} />
+                    <span>{option.label}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="icon-picker-note">Class icons are part of the upcoming design milestone and will not be saved yet.</p>
+            </fieldset>
             <div className="modal-actions">
               <button type="button" className="btn-secondary" onClick={() => setShowCreate(false)}>
                 Cancel
               </button>
-              <button type="button" className="btn-primary" disabled={!newName.trim() || creating} onClick={handleCreate}>
+              <button type="button" className="btn-primary" disabled={!newName.trim() || !newIcon || creating} onClick={handleCreate}>
                 {creating ? 'Creating…' : 'Create'}
               </button>
             </div>

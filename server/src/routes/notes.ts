@@ -37,6 +37,7 @@ const upload = multer({
 
       // Text
       'text/plain',                    // .txt
+      'text/html',                     // formatted in-app notes
     ];
 
     // isHeic also catches HEIC photos sent as application/octet-stream
@@ -85,7 +86,17 @@ router.post('/', upload.single('image'), async (req, res) => {
       'text/plain'
     ];
 
-    if (documentTypes.includes(file.mimetype)) {
+    if (file.mimetype === 'text/html') {
+      extractedText = file.buffer
+        .toString('utf8')
+        .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/&amp;/gi, '&')
+        .replace(/\s+/g, ' ')
+        .trim();
+    } else if (documentTypes.includes(file.mimetype)) {
       console.log(`Extracting text from ${file.mimetype}...`);
       extractedText = await extractTextFromFile(imageUrl, file.mimetype);
       console.log(`Extracted ${extractedText?.length ?? 0} characters`);

@@ -7,31 +7,33 @@ interface Props {
   onComplete?: () => void;
 }
 
-// Mixed-script pool matching the reference mockup's scrambled look —
-// CJK, Greek, Devanagari, math symbols, digits, a few Latin.
+// Character pool for the intro reveal.
 const SCRAMBLE_POOL = '初弐ЖΩΣ√7feह्रकcQ한Σ9#@';
 
-// How often an unlocked character's glyph flips to a new random one — slow
-// enough to read as a deliberate morph rather than a flicker.
 const SCRAMBLE_INTERVAL = 60;
 
 function randomChar() {
   return SCRAMBLE_POOL[Math.floor(Math.random() * SCRAMBLE_POOL.length)];
 }
 
-// Ease-out: the reveal wavefront moves fast at first and settles gradually,
-// so it reads as an intentional reveal rather than a constant-rate timer.
+function scrambledText(finalText: string) {
+  return finalText
+    .split('')
+    .map((character) => character === ' ' ? ' ' : randomChar())
+    .join('');
+}
+
 function easeOutCubic(t: number) {
   return 1 - (1 - t) ** 3;
 }
 
 export default function TextScrambleReveal({
   finalText,
-  duration = 3200,
+  duration = 1600,
   className,
   onComplete,
 }: Props) {
-  const [displayText, setDisplayText] = useState(finalText);
+  const [displayText, setDisplayText] = useState(() => scrambledText(finalText));
 
   useEffect(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -42,8 +44,7 @@ export default function TextScrambleReveal({
     }
 
     const chars = finalText.split('');
-    // Each character locks at its own point along the eased wavefront, so
-    // characters settle one at a time instead of all snapping on one tick.
+    setDisplayText(scrambledText(finalText));
     const lockAt = chars.map((_, i) => ((i + 1) / chars.length) * duration);
 
     const startedAt = performance.now();
@@ -83,5 +84,5 @@ export default function TextScrambleReveal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finalText]);
 
-  return <span className={className}>{displayText}</span>;
+  return <span className={className} aria-label={finalText}>{displayText}</span>;
 }
