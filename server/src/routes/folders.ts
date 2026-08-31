@@ -4,7 +4,6 @@ import { supabase } from '../config/supabase.js';
 const router = Router();
 const folderIcons = new Set(['atom', 'flask', 'calculator', 'chart', 'books', 'notebook', 'paw', 'sprout', 'globe', 'monitor']);
 
-// Get all folders
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -21,7 +20,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Create a new folder
 router.post('/', async (req, res) => {
   try {
     const { name, icon } = req.body;
@@ -48,7 +46,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get a single folder
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -68,7 +65,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Update a folder (rename and/or change icon)
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -101,7 +97,6 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete a folder (classes inside it are unassigned, not deleted, via ON DELETE SET NULL)
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;

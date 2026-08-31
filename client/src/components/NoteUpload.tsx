@@ -1,29 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { uploadNote } from '../api';
+import { SOURCE_INPUT_ACCEPT, validateSourceForSelection } from '../config/sourceFormats';
 import './NoteComponents.css';
 
 interface Props {
   classId: number;
   onNoteUploaded: () => void;
 }
-
-const ALLOWED_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/jpg',
-  'image/gif',
-  'image/heic',
-  'image/webp',
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-powerpoint',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'text/plain',
-];
-
-const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
 export default function NoteUpload({ classId, onNoteUploaded }: Props) {
   const [uploading, setUploading] = useState(false);
@@ -32,13 +16,9 @@ export default function NoteUpload({ classId, onNoteUploaded }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('Please upload an image, PDF, PowerPoint, or Word document');
-      return;
-    }
-
-    if (file.size > MAX_FILE_SIZE) {
-      setError('File size must be less than 20MB');
+    const validationError = validateSourceForSelection(file);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -125,7 +105,7 @@ export default function NoteUpload({ classId, onNoteUploaded }: Props) {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*,application/pdf,.doc,.docx,.ppt,.pptx,.txt"
+          accept={SOURCE_INPUT_ACCEPT}
           onChange={handleFileInput}
           style={{ display: 'none' }}
           disabled={uploading}
@@ -143,7 +123,7 @@ export default function NoteUpload({ classId, onNoteUploaded }: Props) {
               <strong>Click to upload</strong> or drag and drop
             </div>
             <div className="upload-hint">
-              Images, PDFs, PowerPoint, Word docs up to 20MB | Press Ctrl+V to paste
+              JPG, PNG, WebP, HEIC, PDF, DOCX, slides, or TXT up to 20MB
             </div>
           </>
         )}

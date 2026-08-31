@@ -10,6 +10,7 @@ interface Props {
   onChat: () => void;
   onQuiz: () => void;
   onSummarize: () => void;
+  onFlashcards: () => void;
   onComingSoon: (tool: string) => void;
 }
 
@@ -17,7 +18,7 @@ const AI_TOOLS = [{ label: 'Explain this', icon: MessageCircle }, { label: 'Summ
 const NOTE_TOOLS = [{ label: 'Save to Notes', icon: BellRing }, { label: 'Highlight Important', icon: Highlighter }, { label: 'Extract Definitions', icon: BookOpenCheck }, { label: 'Extract Formulas', icon: Calculator }, { label: 'Create Outline', icon: ListTree }];
 const PRODUCTIVITY = [{ label: 'To-Do List', icon: ListTodo }, { label: 'Assignments', icon: ClipboardList }, { label: 'Study Timer', icon: Timer }, { label: 'Calendar', icon: CalendarDays }];
 
-export default function SidebarSections({ notes, onOpenSourceTree, onChat, onQuiz, onSummarize, onComingSoon }: Props) {
+export default function SidebarSections({ notes, onOpenSourceTree, onChat, onQuiz, onSummarize, onFlashcards, onComingSoon }: Props) {
   const recent = notes.slice(0, 4);
 
   return (
@@ -52,7 +53,7 @@ export default function SidebarSections({ notes, onOpenSourceTree, onChat, onQui
         </button>
       </div>
 
-      <ToolGroup title="AI Tools" items={AI_TOOLS} onAction={(item) => item === 'Explain this' ? onChat() : item === 'Quiz Me' ? onQuiz() : item === 'Summarize' ? onSummarize() : onComingSoon(item)} />
+      <ToolGroup title="AI Tools" items={AI_TOOLS} onAction={(item) => item === 'Explain this' ? onChat() : item === 'Quiz Me' ? onQuiz() : item === 'Summarize' ? onSummarize() : item === 'Flash Cards' ? onFlashcards() : onComingSoon(item)} />
       <ToolGroup title="Note Tools" items={NOTE_TOOLS} onAction={onComingSoon} />
       <ToolGroup title="Productivity" items={PRODUCTIVITY} onAction={onComingSoon} />
     </div>
@@ -68,7 +69,7 @@ function ToolGroup({ title, items, onAction }: { title: string; items: { label: 
       <ul className="sidebar-inert-list">
         {items.map(({ label, icon: Icon }) => (
           <li key={label}>
-            <button type="button" onClick={() => onAction(label)} title={label === 'Explain this' || label === 'Quiz Me' || label === 'Summarize' ? undefined : `${label} is coming soon`}>
+            <button type="button" onClick={() => onAction(label)} title={label === 'Explain this' || label === 'Quiz Me' || label === 'Summarize' || label === 'Flash Cards' ? undefined : `${label} is coming soon`}>
               <Icon size={16} />
               <span>{label}</span>
             </button>

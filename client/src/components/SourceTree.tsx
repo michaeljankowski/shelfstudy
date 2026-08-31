@@ -1,9 +1,9 @@
-import { ChangeEvent, ReactNode, useRef, useState } from 'react';
+import { ChangeEvent, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
-import { ArrowLeft, ChevronDown, ChevronRight, FileText, Image as ImageIcon, Link2, LoaderCircle, Plus, StickyNote, Upload } from 'lucide-react';
-import { uploadNote } from '../api';
+import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, FileText, Image as ImageIcon, Link2, LoaderCircle, Plus, StickyNote, Upload, X } from 'lucide-react';
+import { getOfficePreview, uploadNote } from '../api';
 import { SOURCE_INPUT_ACCEPT, validateSourceForSelection } from '../config/sourceFormats';
-import { Note } from '../types';
+import { Note, OfficePreview } from '../types';
 import RichNoteEditor from './RichNoteEditor';
 import './SourceTree.css';
 
@@ -27,6 +27,152 @@ const GROUPS: { key: Category; label: string; icon: ReactNode }[] = [
   { key: 'notes', label: 'In-app Notes', icon: <StickyNote size={16} /> },
 ];
 
+const DOCUMENT_PAGE_CHARACTERS = 3_000;
+
+function officePageHtml(head: string, body: string, kind: OfficePreview['kind'], pageNumber: number) {
+  const wrapper = kind === 'slides'
+    ? `<div class="presentation-container"><article>${body}</article></div>`
+    : `<div class="container"><article><section class="page" data-page-num="${pageNumber}">${body}</section></article></div>`;
+
+  return `<!doctype html><html><head>${head}<style>
+    html,body{width:100%;min-height:100%;margin:0;background:#e9e1d2}
+    body{padding:20px!important}
+    .presentation-container,.container{width:100%!important;max-width:1100px!important;margin:0 auto!important;padding:0!important;background:transparent!important;box-shadow:none!important}
+    .slide,.page{width:100%!important;min-height:calc(100vh - 40px)!important;margin:0!important;border-radius:8px!important;box-shadow:none!important;overflow:auto!important}
+    @media(max-width:700px){body{padding:8px!important}.slide,.page{min-height:calc(100vh - 16px)!important;padding:28px 24px!important}}
+  </style></head><body>${wrapper}</body></html>`;
+}
+
+function buildOfficePages(preview: OfficePreview): string[] {
+  const parsed = new DOMParser().parseFromString(preview.html, 'text/html');
+  parsed.querySelectorAll('script').forEach((script) => script.remove());
+  const head = parsed.head.innerHTML;
+
+  if (preview.kind === 'slides') {
+    const slides = Array.from(parsed.body.querySelectorAll('section.slide'));
+    return slides.map((slide, index) => officePageHtml(head, slide.outerHTML, preview.kind, index + 1));
+  }
+
+  const article = parsed.body.querySelector('article');
+  const blocks = Array.from(article?.children ?? parsed.body.children);
+  const pages: string[][] = [[]];
+  let currentCharacters = 0;
+
+  for (const block of blocks) {
+    const characters = block.textContent?.trim().length ?? 0;
+    const isPageBreak = block.classList.contains('page-break');
+    if ((isPageBreak || currentCharacters + characters > DOCUMENT_PAGE_CHARACTERS) && pages[pages.length - 1].length) {
+      pages.push([]);
+      currentCharacters = 0;
+    }
+    if (!isPageBreak) {
+      pages[pages.length - 1].push(block.outerHTML);
+      currentCharacters += characters;
+    }
+  }
+
+  return pages
+    .filter((page) => page.length > 0)
+    .map((page, index) => officePageHtml(head, page.join(''), preview.kind, index + 1));
+}
+
+function SourcePreview({ note, onClose }: { note: Note; onClose: () => void }) {
+  const filename = note.filename ?? 'Untitled';
+  const isImage = note.file_type?.startsWith('image/');
+  const isPdf = note.file_type === 'application/pdf';
+  const isHtml = note.file_type === 'text/html';
+  const isOffice = note.file_type === 'application/vnd.ms-powerpoint'
+    || note.file_type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    || note.file_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const [htmlContent, setHtmlContent] = useState<string | null>(null);
+  const [htmlError, setHtmlError] = useState(false);
+  const [officePreview, setOfficePreview] = useState<OfficePreview | null>(null);
+  const [officeError, setOfficeError] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const officePages = useMemo(() => officePreview ? buildOfficePages(officePreview) : [], [officePreview]);
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!isHtml) return;
+    const controller = new AbortController();
+    fetch(note.image_url, { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error('Could not load note');
+        return response.text();
+      })
+      .then(setHtmlContent)
+      .catch((error) => {
+        if (error instanceof Error && error.name !== 'AbortError') setHtmlError(true);
+      });
+    return () => controller.abort();
+  }, [isHtml, note.image_url]);
+
+  useEffect(() => {
+    if (!isOffice) return;
+    let active = true;
+    getOfficePreview(note.id)
+      .then((response) => { if (active) setOfficePreview(response.data); })
+      .catch(() => { if (active) setOfficeError(true); });
+    return () => { active = false; };
+  }, [isOffice, note.id]);
+
+  const pageLabel = officePreview?.kind === 'slides' ? 'Slide' : 'Page';
+
+  return (
+    <div className="source-preview-backdrop" onClick={onClose}>
+      <section className="source-preview" role="dialog" aria-modal="true" aria-labelledby="source-preview-title" onClick={(event) => event.stopPropagation()}>
+        <header className="source-preview-header">
+          <div>
+            <span>Source preview</span>
+            <h2 id="source-preview-title">{filename}</h2>
+          </div>
+          <div className="source-preview-actions">
+            <a href={note.image_url} target="_blank" rel="noreferrer" aria-label={`Open ${filename} in a new tab`} title="Open in a new tab"><ExternalLink size={19} /></a>
+            <button type="button" onClick={onClose} aria-label="Close preview"><X size={22} /></button>
+          </div>
+        </header>
+        <div className="source-preview-content">
+          {isImage ? (
+            <img src={note.image_url} alt={filename} />
+          ) : isPdf ? (
+            <iframe src={note.image_url} title={filename} />
+          ) : isHtml && htmlContent ? (
+            <iframe srcDoc={htmlContent} title={filename} sandbox="" />
+          ) : isHtml && !htmlError ? (
+            <div className="source-preview-unavailable"><LoaderCircle size={28} className="source-tree-spin" /><p>Loading note…</p></div>
+          ) : isOffice && officePages.length > 0 ? (
+            <iframe srcDoc={officePages[currentPage]} title={`${filename}, ${pageLabel} ${currentPage + 1}`} sandbox="" />
+          ) : isOffice && !officeError ? (
+            <div className="source-preview-unavailable"><LoaderCircle size={28} className="source-tree-spin" /><p>Building preview…</p></div>
+          ) : note.extracted_text ? (
+            <pre>{note.extracted_text}</pre>
+          ) : (
+            <div className="source-preview-unavailable">
+              <FileText size={42} />
+              <p>A browser preview is not available for this file.</p>
+              <a href={note.image_url} target="_blank" rel="noreferrer">Open the original file</a>
+            </div>
+          )}
+        </div>
+        {isOffice && officePages.length > 0 && (
+          <nav className="source-preview-navigation" aria-label={`${pageLabel} navigation`}>
+            <button type="button" onClick={() => setCurrentPage((page) => page - 1)} disabled={currentPage === 0}><ChevronLeft size={19} />Previous</button>
+            <span>{pageLabel} {currentPage + 1} of {officePages.length}</span>
+            <button type="button" onClick={() => setCurrentPage((page) => page + 1)} disabled={currentPage === officePages.length - 1}>Next<ChevronRight size={19} /></button>
+          </nav>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export default function SourceTree({ classId, notes, loading, loadError, activeCategory, onBack, onNoteUploaded, onNoteClick }: Props) {
   const [openCategory, setOpenCategory] = useState<Category | null>(activeCategory ?? 'documents');
   const [uploading, setUploading] = useState(false);
@@ -36,7 +182,27 @@ export default function SourceTree({ classId, notes, loading, loadError, activeC
   const [dragActive, setDragActive] = useState(false);
   const [previewNote, setPreviewNote] = useState<Note | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const selectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => () => {
+    if (selectTimerRef.current) clearTimeout(selectTimerRef.current);
+  }, []);
+
+  const selectNote = (note: Note) => {
+    onNoteClick(note);
+    setSuccess(`${note.filename ?? 'Untitled'} is selected for your next question.`);
+  };
+
+  const handleNoteClick = (note: Note) => {
+    if (selectTimerRef.current) clearTimeout(selectTimerRef.current);
+    selectTimerRef.current = setTimeout(() => selectNote(note), 220);
+  };
+
+  const handleNoteDoubleClick = (note: Note) => {
+    if (selectTimerRef.current) clearTimeout(selectTimerRef.current);
+    selectNote(note);
+    setPreviewNote(note);
+  };
 
   const documents = notes.filter((note) => !note.file_type?.startsWith('image/') && note.file_type !== 'text/html');
   const photos = notes.filter((note) => note.file_type?.startsWith('image/'));
@@ -118,11 +284,8 @@ export default function SourceTree({ classId, notes, loading, loadError, activeC
                   key={note.id}
                   type="button"
                   className="source-tree-item"
-                  onClick={() => {
-                    onNoteClick(note);
-                    setSuccess(`${note.filename ?? 'Untitled'} is selected for your next question.`);
-                  }}
-                  onDoubleClick={() => setPreviewNote(note)}
+                  onClick={() => handleNoteClick(note)}
+                  onDoubleClick={() => handleNoteDoubleClick(note)}
                 >
                   <span className="source-tree-item-name">{note.filename ?? 'Untitled'}</span>
                   <span className="source-tree-item-date">{new Date(note.created_at).toLocaleDateString()}</span>
@@ -132,7 +295,7 @@ export default function SourceTree({ classId, notes, loading, loadError, activeC
           </div>;
         })}
       </section>
-      {previewNote && <p>{previewNote.filename ?? 'Untitled'}</p>}
+      {previewNote && <SourcePreview note={previewNote} onClose={() => setPreviewNote(null)} />}
       {showEditor && (
         <RichNoteEditor
           classId={classId}

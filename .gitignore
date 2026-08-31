@@ -43,7 +43,7 @@ build/
 # Playwright CLI session artifacts (snapshots, console logs)
 .playwright-cli/
 
-# Claude Code local tooling — not part of the project itself
+# Claude Code local tooling, not part of the project itself
 .claude/
 .mcp.json
 .planning/
@@ -52,17 +52,21 @@ DESIGNER_BRIEF.md
 
 # Private local development tooling and its artifacts
 codex-visual-runner/
+claude-visual-runner/
 regression-agent/
 .playwright-mcp/
 
-# Design reference mockups — local reference only, not project assets
+# Design reference mockups
 designimages/
+/ImgTypes/
 
-# AI design-system tooling output — local reference only, not project assets
+#Design system
 client/design-system/
 
-# Local planning and agent documentation
+# Local planning
 /docs/**/*.md
+!/docs/architecture/
+!/docs/architecture/**/*.md
 
 # Local visual review captures
 /folder-layout-productivity-*.png

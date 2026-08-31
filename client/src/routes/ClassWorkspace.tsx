@@ -4,8 +4,10 @@ import { Menu, ChevronDown, Search } from 'lucide-react';
 import { Class, Note } from '../types';
 import { getClass, getClasses, getNotesByClass } from '../api';
 import ChatInterface from '../components/ChatInterface';
+import FlashcardStudy from '../components/FlashcardStudy';
 import SidebarSections from '../components/SidebarSections';
 import SourceTree from '../components/SourceTree';
+import { markClassOpened } from '../utils/classLastOpened';
 import './ClassWorkspace.css';
 
 const CLASS_MENU_COMPACT_LIMIT = 10;
@@ -32,6 +34,11 @@ export default function ClassWorkspace() {
   const [classMenuOpen, setClassMenuOpen] = useState(false);
   const [chatCommand, setChatCommand] = useState<'quiz' | 'summarize' | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [mainView, setMainView] = useState<'chat' | 'flashcards'>('chat');
+
+  useEffect(() => {
+    if (Number.isSafeInteger(id) && id > 0) markClassOpened(id);
+  }, [id]);
 
   useEffect(() => {
     getClass(id).then((res) => setCls(res.data));
@@ -101,10 +108,11 @@ export default function ClassWorkspace() {
             <SidebarSections
               notes={notes}
               onOpenSourceTree={(category) => setSidebarView({ mode: 'source-tree', category })}
-              onChat={() => { setNotice(null); document.querySelector<HTMLInputElement>('.chat-input')?.focus(); }}
-              onQuiz={() => { setNotice(null); setChatCommand('quiz'); }}
-              onSummarize={() => { setNotice(null); setChatCommand('summarize'); }}
-              onComingSoon={setNotice}
+              onChat={() => { setMainView('chat'); setNotice(null); requestAnimationFrame(() => document.querySelector<HTMLInputElement>('.chat-input')?.focus()); }}
+              onQuiz={() => { setMainView('chat'); setNotice(null); setChatCommand('quiz'); }}
+              onSummarize={() => { setMainView('chat'); setNotice(null); setChatCommand('summarize'); }}
+              onFlashcards={() => { setNotice(null); setMainView('flashcards'); }}
+              onComingSoon={(tool) => { setMainView('chat'); setNotice(tool); }}
             />
           ) : (
             <SourceTree
@@ -120,7 +128,11 @@ export default function ClassWorkspace() {
           )}
         </aside>
         <main className="class-workspace-main">
-          <ChatInterface classId={id} selectedNoteId={selectedNoteId} command={chatCommand} onCommandHandled={() => setChatCommand(null)} onNoteSaved={() => setRefreshTrigger((n) => n + 1)} notice={notice} />
+          {mainView === 'flashcards' ? (
+            <FlashcardStudy classId={id} selectedNoteId={selectedNoteId} onClose={() => setMainView('chat')} />
+          ) : (
+            <ChatInterface classId={id} selectedNoteId={selectedNoteId} command={chatCommand} onCommandHandled={() => setChatCommand(null)} onNoteSaved={() => setRefreshTrigger((n) => n + 1)} notice={notice} />
+          )}
         </main>
       </div>
     </div>

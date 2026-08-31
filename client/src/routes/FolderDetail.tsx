@@ -6,6 +6,7 @@ import AppShell from './AppShell';
 import { createClass, deleteClass, getClasses, getFolder, updateClass } from '../api';
 import { Class, Folder } from '../types';
 import { markFolderOpened } from '../utils/folderLastOpened';
+import { formatClassLastOpened, readClassLastOpened } from '../utils/classLastOpened';
 import './EntityGrid.css';
 import './FolderDetail.css';
 
@@ -31,6 +32,7 @@ export default function FolderDetail() {
   const [creating, setCreating] = useState(false);
   const [renamingId, setRenamingId] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [classLastOpened] = useState(readClassLastOpened);
 
   useEffect(() => {
     if (openMenuId === null) return;
@@ -222,7 +224,9 @@ export default function FolderDetail() {
                     )}
                   </div>
                 </div>
-                <p className="folder-detail-card-date">Last opened: <span aria-label="Last opened date unavailable">—</span></p>
+                <p className="folder-detail-card-date">
+                  Last opened: <time dateTime={classLastOpened[cls.id]}>{formatClassLastOpened(classLastOpened[cls.id])}</time>
+                </p>
               </div>
               );
             })}

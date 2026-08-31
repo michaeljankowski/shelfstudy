@@ -7,7 +7,6 @@ interface Props {
   onComplete?: () => void;
 }
 
-// Character pool for the intro reveal.
 const SCRAMBLE_POOL = '初弐ЖΩΣ√7feह्रकcQ한Σ9#@';
 
 const SCRAMBLE_INTERVAL = 60;

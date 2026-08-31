@@ -1,9 +1,8 @@
 import axios from 'axios';
-import { Class, Folder, Note } from './types';
+import { Class, Flashcard, Folder, Note, OfficePreview } from './types';
 
-const API_BASE = '/api'; // Proxied to localhost:3000
+const API_BASE = '/api';
 
-// Classes
 export const getClasses = () =>
   axios.get<Class[]>(`${API_BASE}/classes`);
 
@@ -22,7 +21,6 @@ export const deleteClass = (id: number) =>
 export const getClass = (id: number) =>
   axios.get<Class>(`${API_BASE}/classes/${id}`);
 
-// Folders
 export const getFolders = () =>
   axios.get<Folder[]>(`${API_BASE}/folders`);
 
@@ -38,7 +36,6 @@ export const updateFolder = (id: number, updates: { name?: string; icon?: string
 export const deleteFolder = (id: number) =>
   axios.delete(`${API_BASE}/folders/${id}`);
 
-// Notes
 export const getNotesByClass = (classId: number) =>
   axios.get<Note[]>(`${API_BASE}/notes/class/${classId}`);
 
@@ -57,7 +54,9 @@ export const uploadNote = (classId: number, file: File) => {
 export const deleteNote = (noteId: number) =>
   axios.delete(`${API_BASE}/notes/${noteId}`);
 
-// Chat
+export const getOfficePreview = (noteId: number) =>
+  axios.get<OfficePreview>(`${API_BASE}/notes/${noteId}/preview`);
+
 export const sendChatMessage = (classId: number, message: string, noteId?: number) =>
   axios.post<{ reply: string }>(`${API_BASE}/chat`, {
     message,
@@ -69,4 +68,19 @@ export const generateQuiz = (classId: number, numQuestions: number = 5) =>
   axios.post<{ questions: string[] }>(`${API_BASE}/chat/quiz`, {
     classId,
     numQuestions,
+  });
+
+export const generateFlashcards = ({ classId, numCards, noteId, focus, excludeFronts }: {
+  classId: number;
+  numCards: number;
+  noteId?: number;
+  focus?: string;
+  excludeFronts?: string[];
+}) =>
+  axios.post<{ cards: Flashcard[] }>(`${API_BASE}/chat/flashcards`, {
+    classId,
+    numCards,
+    noteId,
+    focus,
+    excludeFronts,
   });
