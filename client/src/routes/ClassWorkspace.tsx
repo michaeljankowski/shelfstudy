@@ -120,10 +120,11 @@ export default function ClassWorkspace() {
               notes={notes}
               loading={notesLoading}
               loadError={notesError}
+              selectedNoteId={selectedNoteId}
               activeCategory={sidebarView.category}
               onBack={() => setSidebarView({ mode: 'sections' })}
               onNoteUploaded={() => setRefreshTrigger((n) => n + 1)}
-              onNoteClick={(note) => setSelectedNoteId(note.id)}
+              onNoteClick={(note) => setSelectedNoteId((currentId) => currentId === note.id ? undefined : note.id)}
             />
           )}
         </aside>

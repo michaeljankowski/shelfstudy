@@ -12,6 +12,11 @@ Current priority.
 - Complete upload validation across every supported and invalid fixture.
 - Verify previews for images, PDF, TXT, DOCX, PPT/PPTX, and in-app HTML notes.
 - Complete grounded flashcard generation, regeneration, loading, and error states.
+- Restrict chat to source-grounded studying, including explanations, hints,
+  quizzes, summaries, and flashcard configuration. Unrelated requests should be
+  declined.
+- Optionally add browser speech-to-type to the study-chat input. It only fills
+  the text field; it does not upload, store, or transcribe audio on the server.
 - Add focused automated tests for upload routes, preview generation, and mocked
   flashcard responses.
 
@@ -74,6 +79,8 @@ flowchart LR
 ```
 
 - Run extraction outside HTTP request handlers.
+- Replace request-time vision OCR with a queued OCR job; retain the current
+  on-demand implementation only as the local-development bridge.
 - Convert DOCX and PPT/PPTX to PDF with headless LibreOffice in a container.
   PowerPoint slides become PDF pages; Word pagination becomes much closer to the
   original Office layout.

@@ -23,6 +23,8 @@
 .source-tree-loading { display:flex; align-items:center; gap:7px; }
 .source-tree-item { width:100%; min-height:40px; display:flex; align-items:center; gap:8px; padding:6px 8px; border:0; border-radius:8px; background:transparent; color:var(--text-secondary); font:inherit; font-size:1rem; text-align:left; }
 .source-tree-item:hover { background:var(--bg-tertiary); color:var(--text-primary); }
+.source-tree-item.selected { background:rgba(var(--accent-rgb),.14); color:var(--accent); font-weight:700; }
+.source-tree-item.selected:hover { background:rgba(var(--accent-rgb),.2); }
 .source-tree-item-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .source-tree-item-date { margin-left:auto; color:var(--text-muted); font-size:.78rem; white-space:nowrap; }
 .source-tree-feedback { margin:10px 16px 0; }

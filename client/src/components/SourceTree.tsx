@@ -14,6 +14,7 @@ interface Props {
   notes: Note[];
   loading: boolean;
   loadError: string;
+  selectedNoteId?: number;
   activeCategory?: Category;
   onBack: () => void;
   onNoteUploaded: () => void;
@@ -173,7 +174,7 @@ function SourcePreview({ note, onClose }: { note: Note; onClose: () => void }) {
   );
 }
 
-export default function SourceTree({ classId, notes, loading, loadError, activeCategory, onBack, onNoteUploaded, onNoteClick }: Props) {
+export default function SourceTree({ classId, notes, loading, loadError, selectedNoteId, activeCategory, onBack, onNoteUploaded, onNoteClick }: Props) {
   const [openCategory, setOpenCategory] = useState<Category | null>(activeCategory ?? 'documents');
   const [uploading, setUploading] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
@@ -189,8 +190,11 @@ export default function SourceTree({ classId, notes, loading, loadError, activeC
   }, []);
 
   const selectNote = (note: Note) => {
+    const isCurrentlySelected = selectedNoteId === note.id;
     onNoteClick(note);
-    setSuccess(`${note.filename ?? 'Untitled'} is selected for your next question.`);
+    setSuccess(isCurrentlySelected
+      ? `${note.filename ?? 'Untitled'} was unselected. Your next question will search all class sources.`
+      : `${note.filename ?? 'Untitled'} is selected for your next question.`);
   };
 
   const handleNoteClick = (note: Note) => {
@@ -200,7 +204,6 @@ export default function SourceTree({ classId, notes, loading, loadError, activeC
 
   const handleNoteDoubleClick = (note: Note) => {
     if (selectTimerRef.current) clearTimeout(selectTimerRef.current);
-    selectNote(note);
     setPreviewNote(note);
   };
 
@@ -283,7 +286,8 @@ export default function SourceTree({ classId, notes, loading, loadError, activeC
                 <button
                   key={note.id}
                   type="button"
-                  className="source-tree-item"
+                  className={`source-tree-item${selectedNoteId === note.id ? ' selected' : ''}`}
+                  aria-pressed={selectedNoteId === note.id}
                   onClick={() => handleNoteClick(note)}
                   onDoubleClick={() => handleNoteDoubleClick(note)}
                 >
@@ -303,7 +307,7 @@ export default function SourceTree({ classId, notes, loading, loadError, activeC
           onSaved={() => {
             setShowEditor(false);
             setOpenCategory('notes');
-            setSuccess('Your formatted note was saved to In-app Notes.');
+            setSuccess('Note was saved to In-app Notes.');
             onNoteUploaded();
           }}
         />

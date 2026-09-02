@@ -153,7 +153,7 @@ export default function FlashcardStudy({ classId, selectedNoteId, onClose }: Pro
           <div className="flashcard-study-state" role="status">
             <LoaderCircle className="flashcard-study-spinner" size={28} />
             <h3>Creating your cards</h3>
-            <p>Finding the most useful concepts in your sources…</p>
+            <p>Reading your source and finding the most useful concepts…</p>
           </div>
         )}
 

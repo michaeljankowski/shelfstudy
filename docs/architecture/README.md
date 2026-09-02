@@ -89,8 +89,32 @@ flowchart LR
 
 The model must return evidence copied from the source. Unsupported or repeated
 cards are removed. Returning fewer cards than requested is valid when at least
-one grounded card remains. Generated sets are not persisted or cached, so repeated
-generation currently creates another model request.
+one grounded card remains. When a selected image or scanned PDF has no useful
+extracted text, the API uses vision OCR on demand and saves the transcription in
+the existing `extracted_text` field. Later requests reuse that saved text. Requests
+for the same source share one in-flight OCR operation. Generated card sets are not
+persisted or cached, so repeated generation currently creates another model request.
+
+Vision OCR limitations:
+
+- The first flashcard request for a visual source adds a paid model call and latency.
+- Handwriting, low contrast, rotation, equations, and dense multi-page scans can
+  produce transcription errors and must be covered by representative evaluations.
+- OCR runs inside the HTTP request for now. The production roadmap moves it into
+  the asynchronous document worker.
+
+## Current study-chat source selection
+
+- A single click selects one source; clicking that selected source again clears
+  the selection. Multiple selection is intentionally deferred.
+- A double-click opens the preview without changing source selection.
+- With one source selected, chat and flashcards receive that source ID.
+- With no source selected, chat ranks the class sources against the question by
+  filename and extracted-text term matches. It sends the most relevant readable
+  material within a bounded context window, plus up to three relevant images
+  that do not have extracted text.
+- This local ranking avoids another model call. A production retrieval index is
+  deferred until class libraries are large enough to justify it.
 
 ## Decisions in force
 
