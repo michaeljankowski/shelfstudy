@@ -18,6 +18,7 @@ export interface Class {
     image_url: string;
     file_type?: string;
     filename?: string;
+    extracted_text?: string | null;
     created_at: string;
   }
   
@@ -25,4 +26,14 @@ export interface Class {
     role: 'user' | 'assistant';
     content: string;
     timestamp: Date;
+  }
+
+  export interface Flashcard {
+    front: string;
+    back: string;
+  }
+
+  export interface OfficePreview {
+    kind: 'slides' | 'document';
+    html: string;
   }

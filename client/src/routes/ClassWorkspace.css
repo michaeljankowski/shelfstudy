@@ -1,0 +1,22 @@
+.class-workspace { height: 100vh; min-width: 0; overflow: hidden; padding: 8px; background: var(--bg-primary); }
+.class-workspace-header { height: 82px; display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 8px; align-items: stretch; margin-bottom: 10px; }
+.class-workspace-wordmark, .class-workspace-class-picker, .class-workspace-search { background: var(--bg-secondary); border-radius: 28px; }
+.class-workspace-wordmark { position: relative; display:flex; align-items:center; padding-left:16px; font-family:'Playfair Display', Georgia, serif; font-size:2rem; line-height:1; letter-spacing:-.04em; color:var(--accent); text-decoration:none; }
+.class-workspace-icon-btn { position:absolute; z-index:2; top:22px; left:226px; width:44px; height:44px; display:grid; place-items:center; color:var(--text-secondary); background:transparent; border:0; border-radius:var(--radius); }
+.class-workspace-icon-btn:hover { background:rgba(var(--accent-rgb),.09); }
+.class-workspace-class-picker { position:relative; display:flex; min-width:0; }
+.class-workspace-dropdown { width:100%; padding:0 36px; display:flex; align-items:center; gap:12px; background:transparent; border:0; color:var(--text-primary); text-align:left; font-family:'Playfair Display', Georgia, serif; font-size:1.8rem; font-weight:400; }
+.class-workspace-dropdown span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.class-workspace-class-menu { position:absolute; z-index:4; top:calc(100% + 8px); left:0; width:min(440px, 100%); max-height:340px; overflow:auto; padding:8px; border:1px solid var(--border); border-radius:16px; background:var(--bg-secondary); box-shadow:var(--shadow-lg); }
+.class-workspace-class-menu button, .class-workspace-class-menu a { width:100%; display:block; padding:12px 14px; border:0; border-radius:10px; background:transparent; color:var(--text-primary); text-align:left; text-decoration:none; font:inherit; }
+.class-workspace-class-menu button:hover, .class-workspace-class-menu button.active, .class-workspace-class-menu a:hover { background:var(--bg-tertiary); }
+.class-workspace-class-menu span { display:block; padding:12px 14px; color:var(--text-secondary); }
+.class-workspace-search { position:absolute; top:18px; right:18px; width:44px; height:44px; display:grid; place-items:center; border:0; background:transparent; color:var(--text-primary); }
+.class-workspace-search:hover { background:rgba(var(--accent-rgb),.09); }
+.class-workspace-body { height:calc(100% - 100px); display:flex; min-width:0; overflow:hidden; }
+.class-workspace-sidebar { width:280px; flex-shrink:0; overflow-y:auto; background:var(--bg-secondary); border-radius:20px; transition:width 180ms ease, opacity 180ms ease; }
+.class-workspace-sidebar.collapsed { width:0; opacity:0; overflow:hidden; }
+.class-workspace-main { min-width:0; flex:1; margin-left:8px; overflow:hidden; }
+.class-workspace-main .chat-container { height:100%; margin:0; }
+@media (max-width: 760px) { .class-workspace { padding:4px; } .class-workspace-header { height:74px; grid-template-columns:1fr; margin-bottom:8px; } .class-workspace-wordmark { font-size:2rem; border-radius:20px; padding-left:16px; } .class-workspace-icon-btn { left:auto; right:54px; top:14px; } .class-workspace-class-picker { display:none; } .class-workspace-search { top:14px; right:8px; } .class-workspace-body { height:calc(100% - 82px); } .class-workspace-sidebar { width:290px; border-radius:20px; } .class-workspace-main { margin-left:4px; } .sidebar-section:nth-child(n) { min-height:0; } }
+@media (prefers-reduced-motion: reduce) { .class-workspace-sidebar { transition:none; } }

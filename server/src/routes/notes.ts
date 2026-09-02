@@ -1,58 +1,56 @@
-import { Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import multer from 'multer';
 import { supabase } from '../config/supabase.js';
-import { uploadImage } from '../services/storage.js';
-import { extractTextFromFile } from '../services/textExtractor.js';
-import { isHeic, heicToJpeg } from '../services/imageConverter.js';
+import { MAX_SOURCE_BYTES } from '../config/sourceFormats.js';
+import { createOfficePreview } from '../services/officePreview.js';
+import { prepareSource } from '../services/sourceIngestion.js';
+import { validateUploadedSource } from '../services/sourceValidation.js';
+import { deleteImage, downloadSource, uploadSource } from '../services/storage.js';
 
 const router = Router();
 
-/**
- * MULTER CONFIGURATION
- * Handles file uploads with validation
- */
 const upload = multer({
-  storage: multer.memoryStorage(),  // Store files in memory (RAM) as Buffer
+  storage: multer.memoryStorage(),
   limits: {
-    fileSize: 20 * 1024 * 1024,    // 20MB max file size
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = [
-      // Images
-      'image/jpeg',
-      'image/png',
-      'image/jpg',
-      'image/gif',
-      'image/webp',
-      'image/heic',                    // iPhone photos (converted to JPEG on upload)
-      'image/heif',
-
-      // Documents
-      'application/pdf',              // PDF files
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
-
-      // PowerPoint
-      'application/vnd.ms-powerpoint',  // .ppt (old PowerPoint)
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
-
-      // Text
-      'text/plain',                    // .txt
-    ];
-
-    // isHeic also catches HEIC photos sent as application/octet-stream
-    if (allowedTypes.includes(file.mimetype) || isHeic(file)) {
-      cb(null, true);  // Accept file
-    } else {
-      cb(new Error('File type not supported. Allowed: images, PDFs, PowerPoint, Word docs, text files'));
-    }
+    fileSize: MAX_SOURCE_BYTES,
   },
 });
 
-/**
- * ROUTE: Upload a note
- * POST /api/notes
- */
-router.post('/', upload.single('image'), async (req, res) => {
+const configuredUploadLimit = Number(process.env.MAX_CONCURRENT_UPLOADS ?? 3);
+const maxConcurrentUploads = Number.isSafeInteger(configuredUploadLimit) && configuredUploadLimit > 0
+  ? configuredUploadLimit
+  : 3;
+let activeUploads = 0;
+
+function admitUpload(_req: Request, res: Response, next: NextFunction) {
+  if (activeUploads >= maxConcurrentUploads) {
+    res.set('Retry-After', '5');
+    return res.status(503).json({ error: 'The upload service is busy. Try again in a few seconds.' });
+  }
+
+  activeUploads += 1;
+  let released = false;
+  const releaseSlot = () => {
+    if (released) return;
+    released = true;
+    activeUploads -= 1;
+  };
+  res.once('finish', releaseSlot);
+  res.once('close', releaseSlot);
+  next();
+}
+
+function receiveSource(req: Request, res: Response, next: NextFunction) {
+  upload.single('image')(req, res, (error: unknown) => {
+    if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'Files must be smaller than 20MB.' });
+    }
+    if (error) return res.status(400).json({ error: 'The upload could not be read.' });
+    next();
+  });
+}
+
+router.post('/', admitUpload, receiveSource, async (req, res) => {
   try {
     const { classId } = req.body;
     const file = req.file;
@@ -63,47 +61,46 @@ router.post('/', upload.single('image'), async (req, res) => {
       });
     }
 
-    console.log(`Creating note for class ${classId}`);
-
-    // Convert HEIC/HEIF (iPhone photos) to JPEG — OpenAI and browsers can't read HEIC
-    if (isHeic(file)) {
-      console.log('Converting HEIC -> JPEG...');
-      file.buffer = await heicToJpeg(file.buffer);
-      file.mimetype = 'image/jpeg';
-      file.originalname = file.originalname.replace(/\.hei[cf]$/i, '') + '.jpg';
+    const numericClassId = Number(classId);
+    if (!Number.isSafeInteger(numericClassId) || numericClassId <= 0) {
+      return res.status(400).json({ error: 'classId must be a positive integer' });
     }
 
-    const imageUrl = await uploadImage(file, parseInt(classId));
-
-    // Extract text for documents
-    let extractedText: string | null = null;
-    const documentTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain'
-    ];
-
-    if (documentTypes.includes(file.mimetype)) {
-      console.log(`Extracting text from ${file.mimetype}...`);
-      extractedText = await extractTextFromFile(imageUrl, file.mimetype);
-      console.log(`Extracted ${extractedText?.length ?? 0} characters`);
+    const validation = validateUploadedSource(file);
+    if (!validation.ok) {
+      return res.status(validation.status).json({ error: validation.message });
     }
+
+    console.log(`Preparing source for class ${numericClassId}`);
+    const prepared = await prepareSource(file, validation.format);
+    const storedFile: Express.Multer.File = {
+      ...file,
+      buffer: prepared.buffer,
+      originalname: prepared.filename,
+      mimetype: prepared.mimeType,
+      size: prepared.buffer.byteLength,
+    };
+    const sourceUrl = await uploadSource(storedFile, numericClassId);
 
     const { data, error } = await supabase
       .from('notes')
       .insert({
-        class_id: parseInt(classId),
-        image_url: imageUrl,
-        file_type: file.mimetype,
-        filename: file.originalname,
-        extracted_text: extractedText,
+        class_id: numericClassId,
+        image_url: sourceUrl,
+        file_type: prepared.mimeType,
+        filename: prepared.filename,
+        extracted_text: prepared.extractedText,
       })
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // The file should not stay behind if its note was never saved.
+      await deleteImage(sourceUrl).catch((cleanupError) => {
+        console.error('Could not clean up failed source upload:', cleanupError);
+      });
+      throw error;
+    }
 
     console.log('Note created:', data.id);
     res.json(data);
@@ -115,10 +112,6 @@ router.post('/', upload.single('image'), async (req, res) => {
   }
 });
 
-/**
- * ROUTE: Get all notes for a class
- * GET /api/notes/class/:classId
- */
 router.get('/class/:classId', async (req, res) => {
   try {
     const { classId } = req.params;
@@ -141,10 +134,37 @@ router.get('/class/:classId', async (req, res) => {
   }
 });
 
-/**
- * ROUTE: Get single note
- * GET /api/notes/:id
- */
+router.get('/:id/preview', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'Note id must be a positive integer' });
+    }
+
+    const { data: note, error } = await supabase
+      .from('notes')
+      .select('image_url, file_type')
+      .eq('id', id)
+      .single();
+
+    if (error || !note) return res.status(404).json({ error: 'Note not found' });
+
+    const isOfficeFile = note.file_type === 'application/vnd.ms-powerpoint'
+      || note.file_type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+      || note.file_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+
+    if (!isOfficeFile) {
+      return res.status(415).json({ error: 'This source does not need an Office preview' });
+    }
+
+    const buffer = await downloadSource(note.image_url);
+    res.json(await createOfficePreview(buffer, note.file_type));
+  } catch (error: any) {
+    console.error('Error generating source preview:', error.message);
+    res.status(500).json({ error: 'Could not generate this source preview' });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -164,15 +184,10 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-/**
- * ROUTE: Delete a note
- * DELETE /api/notes/:id
- */
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Get note to find image URL
     const { data: note, error: fetchError } = await supabase
       .from('notes')
       .select('image_url')
@@ -181,13 +196,14 @@ router.delete('/:id', async (req, res) => {
 
     if (fetchError) throw fetchError;
 
-    // Delete from database
     const { error: deleteError } = await supabase
       .from('notes')
       .delete()
       .eq('id', id);
 
     if (deleteError) throw deleteError;
+
+    await deleteImage(note.image_url);
 
     console.log('Note deleted');
     res.json({ message: 'Note deleted successfully' });

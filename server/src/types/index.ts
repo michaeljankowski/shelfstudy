@@ -16,8 +16,9 @@ export interface Class {
     id: number;
     class_id: number;
     image_url: string;
-    file_type?: string;      // NEW
-    filename?: string;       // NEW
+    file_type?: string;
+    filename?: string;
+    extracted_text?: string | null;
     created_at: string;
   }
   
@@ -36,4 +37,8 @@ export interface Class {
     options?: string[];
     answer?: string;
   }
-  
+
+  export interface Flashcard {
+    front: string;
+    back: string;
+  }
