@@ -1,19 +1,25 @@
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
+import { BookmarkPlus, Copy, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { ChatMessage } from '../types';
-import { sendChatMessage, generateQuiz } from '../api';
+import { sendChatMessage, generateQuiz, uploadNote } from '../api';
 import './ChatInterface.css';
 
 interface Props {
   classId: number;
   selectedNoteId?: number;
+  command: 'quiz' | 'summarize' | null;
+  onCommandHandled: () => void;
+  onNoteSaved: () => void;
+  notice: string | null;
 }
 
-export default function ChatInterface({ classId, selectedNoteId }: Props) {
+export default function ChatInterface({ classId, selectedNoteId, command, onCommandHandled, onNoteSaved, notice }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [savedMessage, setSavedMessage] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -24,7 +30,6 @@ export default function ChatInterface({ classId, selectedNoteId }: Props) {
     e.preventDefault();
     if (!input.trim() || sending) return;
 
-    // Show the user's message right away instead of waiting on the response.
     const userMessage: ChatMessage = {
       role: 'user',
       content: input,
@@ -46,8 +51,6 @@ export default function ChatInterface({ classId, selectedNoteId }: Props) {
     } catch (err) {
       const message = axios.isAxiosError(err) ? err.response?.data?.error : undefined;
       setError(message || 'Failed to get AI response');
-      // Drop a message in the thread too, not just the error banner, so the
-      // failure is visible in context.
       const errorMessage: ChatMessage = {
         role: 'assistant',
         content: 'Sorry, I encountered an error. Please try again.',
@@ -91,6 +94,47 @@ export default function ChatInterface({ classId, selectedNoteId }: Props) {
     }
   };
 
+  const handleSummarizeRequest = async () => {
+    const prompt = 'Summarize my notes into the most important ideas, organized as concise study bullets.';
+    await sendPrompt(prompt);
+  };
+
+  const sendPrompt = async (prompt: string) => {
+    if (sending) return;
+    setSending(true);
+    setError('');
+    setMessages((prev) => [...prev, { role: 'user', content: prompt, timestamp: new Date() }]);
+    try {
+      const response = await sendChatMessage(classId, prompt, selectedNoteId);
+      setMessages((prev) => [...prev, { role: 'assistant', content: response.data.reply, timestamp: new Date() }]);
+    } catch (err) {
+      const message = axios.isAxiosError(err) ? err.response?.data?.error : undefined;
+      setError(message || 'Failed to get AI response');
+      setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.', timestamp: new Date() }]);
+    } finally { setSending(false); }
+  };
+
+  useEffect(() => {
+    if (!command) return;
+    if (command === 'quiz') handleQuizRequest();
+    if (command === 'summarize') handleSummarizeRequest();
+    onCommandHandled();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [command]);
+
+  const saveToNotes = async (content: string, index: number) => {
+    if (savedMessage !== null) return;
+    setSavedMessage(index);
+    try {
+      const text = `ShelfStudy assistant response\n\n${content}`;
+      const file = new File([text], `assistant-response-${new Date().toISOString().slice(0, 10)}.txt`, { type: 'text/plain' });
+      await uploadNote(classId, file);
+      onNoteSaved();
+    } catch {
+      setError('Could not save this response to Recent Sources.');
+    } finally { setSavedMessage(null); }
+  };
+
   const handleClear = () => {
     if (confirm('Clear chat history?')) {
       setMessages([]);
@@ -100,37 +144,17 @@ export default function ChatInterface({ classId, selectedNoteId }: Props) {
 
   return (
     <div className="chat-container">
-      <div className="chat-header">
-        <div>
-          <h3>AI Assistant</h3>
-          <p>Ask questions about your notes</p>
-        </div>
-        <div className="chat-actions">
-          <button
-            className="btn-secondary"
-            onClick={handleQuizRequest}
-            disabled={sending}
-          >
-            Quiz Me
-          </button>
-          <button
-            className="btn-secondary"
-            onClick={handleClear}
-            disabled={messages.length === 0}
-          >
-            Clear
-          </button>
-        </div>
-      </div>
+      <div className="chat-header"><div><h3>Study companion</h3><p>Ask questions grounded in your uploaded sources.</p></div><button className="chat-clear" onClick={handleClear} disabled={messages.length === 0}>Clear chat</button></div>
+
+      {notice && <div className="workspace-coming-soon" role="status"><strong>{notice}</strong><span>This workspace is ready for it, but the feature is still coming soon.</span></div>}
 
       {error && <div className="error">{error}</div>}
 
       <div className="chat-messages">
         {messages.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">Start</div>
-            <h3>Start a Conversation</h3>
-            <p>Ask me to explain concepts, summarize notes, or quiz you</p>
+            <div className="empty-state chat-empty-state">
+            <h3>Ready when you are</h3>
+            <p>Ask about your sources, create a summary, or take a practice quiz.</p>
             <div className="example-prompts">
               <button onClick={() => setInput('Explain the main concepts in my notes')}>
                 "Explain the main concepts"
@@ -150,24 +174,15 @@ export default function ChatInterface({ classId, selectedNoteId }: Props) {
                 key={idx}
                 className={`message ${msg.role === 'user' ? 'message-user' : 'message-ai'}`}
               >
-                <div className="message-avatar">
-                  {msg.role === 'user' ? 'You' : 'AI'}
-                </div>
                 <div className="message-content">
                   <div className="message-text">{msg.content}</div>
-                  <div className="message-time">
-                    {msg.timestamp.toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </div>
+                  {msg.role === 'assistant' && <div className="message-tools"><button type="button" aria-label="Save response to notes" title="Save to Notes" onClick={() => saveToNotes(msg.content, idx)} disabled={savedMessage === idx}>{savedMessage === idx ? 'Saving…' : <BookmarkPlus size={16} />}</button><button type="button" aria-label="Copy response" onClick={() => navigator.clipboard?.writeText(msg.content)}><Copy size={16} /></button><button type="button" aria-label="Helpful response" title="Feedback is coming soon"><ThumbsUp size={16} /></button><button type="button" aria-label="Not helpful" title="Feedback is coming soon"><ThumbsDown size={16} /></button></div>}
                 </div>
               </div>
             ))}
 
             {sending && (
               <div className="message message-ai">
-                <div className="message-avatar">AI</div>
                 <div className="message-content">
                   <div className="message-text typing-indicator">
                     <span></span>
@@ -188,7 +203,7 @@ export default function ChatInterface({ classId, selectedNoteId }: Props) {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about your notes..."
+          placeholder="Start typing…"
           disabled={sending}
           className="chat-input"
         />

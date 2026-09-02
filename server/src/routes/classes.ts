@@ -3,7 +3,6 @@ import { supabase } from '../config/supabase.js';
 
 const router = Router();
 
-// Get all classes
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -20,7 +19,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Create a new class
 router.post('/', async (req, res) => {
   try {
     const { name, folder_id } = req.body;
@@ -44,7 +42,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get single class
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -64,7 +61,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Update a class (rename and/or move between folders)
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -94,12 +90,10 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete a class
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Supabase will cascade delete notes because of ON DELETE CASCADE
     const { error } = await supabase
       .from('classes')
       .delete()

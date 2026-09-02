@@ -36,6 +36,13 @@ server/     Express API — routes, services (OpenAI, storage, text extraction),
 supabase/   Database migrations
 ```
 
+## Architecture
+
+See [docs/SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md) for the current
+request flows, data model, production deployment target, security boundaries,
+AI evaluation strategy, scaling triggers, and an interview-ready explanation
+of the design decisions.
+
 ## Scripts
 
 | | Client | Server |
