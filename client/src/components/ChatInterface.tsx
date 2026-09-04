@@ -8,7 +8,7 @@ import './ChatInterface.css';
 interface Props {
   classId: number;
   selectedNoteId?: number;
-  command: 'quiz' | 'summarize' | null;
+  command: 'quiz' | 'summarize' | 'explain' | null;
   onCommandHandled: () => void;
   onNoteSaved: () => void;
   notice: string | null;
@@ -94,6 +94,13 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
     }
   };
 
+  const handleExplainRequest = async () => {
+    const prompt = selectedNoteId
+      ? 'Explain the main concepts in my notes to a beginner student in the class you are in, using examples and analogies where helpful.'
+      : 'Explain the main concepts in my uploaded sources in an organized way listing sources(e.g. IMG_1234 explains ....), using examples and analogies where helpful.';
+    await sendPrompt(prompt);
+  };
+
   const handleSummarizeRequest = async () => {
     const prompt = 'Summarize my notes into the most important ideas, organized as concise study bullets.';
     await sendPrompt(prompt);
@@ -118,6 +125,7 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
     if (!command) return;
     if (command === 'quiz') handleQuizRequest();
     if (command === 'summarize') handleSummarizeRequest();
+    if (command === 'explain') handleExplainRequest();
     onCommandHandled();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [command]);
