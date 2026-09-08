@@ -32,7 +32,7 @@ export default function ClassWorkspace() {
   const [selectedNoteId, setSelectedNoteId] = useState<number | undefined>();
   const [folderClasses, setFolderClasses] = useState<Class[]>([]);
   const [classMenuOpen, setClassMenuOpen] = useState(false);
-  const [chatCommand, setChatCommand] = useState<'quiz' | 'summarize' | null>(null);
+  const [chatCommand, setChatCommand] = useState<'definitions' | 'formulas' | 'quiz' | 'summarize' | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [mainView, setMainView] = useState<'chat' | 'flashcards'>('chat');
 
@@ -111,6 +111,8 @@ export default function ClassWorkspace() {
               onChat={() => { setMainView('chat'); setNotice(null); requestAnimationFrame(() => document.querySelector<HTMLInputElement>('.chat-input')?.focus()); }}
               onQuiz={() => { setMainView('chat'); setNotice(null); setChatCommand('quiz'); }}
               onSummarize={() => { setMainView('chat'); setNotice(null); setChatCommand('summarize'); }}
+              onExtractDefinitions={() => { setMainView('chat'); setNotice(null); setChatCommand('definitions'); }}
+              onExtractFormulas={() => { setMainView('chat'); setNotice(null); setChatCommand('formulas'); }}
               onFlashcards={() => { setNotice(null); setMainView('flashcards'); }}
               onComingSoon={(tool) => { setMainView('chat'); setNotice(tool); }}
             />
