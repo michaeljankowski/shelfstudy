@@ -32,7 +32,7 @@ export default function ClassWorkspace() {
   const [selectedNoteId, setSelectedNoteId] = useState<number | undefined>();
   const [folderClasses, setFolderClasses] = useState<Class[]>([]);
   const [classMenuOpen, setClassMenuOpen] = useState(false);
-  const [chatCommand, setChatCommand] = useState<'explain' | 'quiz' | 'summarize' | null>(null);
+  const [chatCommand, setChatCommand] = useState<'connect' | 'explain' | 'quiz' | 'summarize' | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [mainView, setMainView] = useState<'chat' | 'flashcards'>('chat');
 
@@ -111,6 +111,7 @@ export default function ClassWorkspace() {
               onChat={() => { setMainView('chat'); setNotice(null); setChatCommand('explain'); }}
               onQuiz={() => { setMainView('chat'); setNotice(null); setChatCommand('quiz'); }}
               onSummarize={() => { setMainView('chat'); setNotice(null); setChatCommand('summarize'); }}
+              onConnectConcepts={() => { setMainView('chat'); setNotice(null); setChatCommand('connect'); }}
               onFlashcards={() => { setNotice(null); setMainView('flashcards'); }}
               onComingSoon={(tool) => { setMainView('chat'); setNotice(tool); }}
             />

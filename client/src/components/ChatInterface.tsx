@@ -8,7 +8,7 @@ import './ChatInterface.css';
 interface Props {
   classId: number;
   selectedNoteId?: number;
-  command: 'quiz' | 'summarize' | 'explain' | null;
+  command: 'connect' | 'quiz' | 'summarize' | 'explain' | null;
   onCommandHandled: () => void;
   onNoteSaved: () => void;
   notice: string | null;
@@ -102,7 +102,16 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
   };
 
   const handleSummarizeRequest = async () => {
-    const prompt = 'Summarize my notes into the most important ideas, organized as concise study bullets.';
+    const prompt = selectedNoteId
+      ? 'Summarize only the selected source as concise study bullets. Include its key facts, definitions, conclusions, and any important formulas that are actually present. Preserve the source terminology and do not add outside information.'
+      : 'Summarize the most important material across my class sources as concise study bullets grouped by topic. Prioritize repeated concepts, headings, key definitions, important formulas, and conclusions. Name the supporting source files for each topic and do not add outside information.';
+    await sendPrompt(prompt);
+  };
+
+  const handleConnectConceptsRequest = async () => {
+    const prompt = selectedNoteId
+      ? 'Connect the important concepts in the selected source. Start with the main idea, then list the strongest relationships as “concept A → relationship → concept B.” Use only prerequisite, part-of, cause-and-effect, comparison, or application relationships that the source supports. Give a one-sentence explanation and supporting wording from the source for every connection. Do not add outside information or invent connections.'
+      : 'Connect the important concepts across my relevant class sources. Start with the main idea, then list the strongest relationships as “concept A → relationship → concept B.” Use only prerequisite, part-of, cause-and-effect, comparison, or application relationships that the sources support. Give a one-sentence explanation, supporting wording, and the source filename for every connection. Do not add outside information or invent connections.';
     await sendPrompt(prompt);
   };
 
@@ -126,6 +135,7 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
     if (command === 'quiz') handleQuizRequest();
     if (command === 'summarize') handleSummarizeRequest();
     if (command === 'explain') handleExplainRequest();
+    if (command === 'connect') handleConnectConceptsRequest();
     onCommandHandled();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [command]);
