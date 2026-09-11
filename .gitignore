@@ -74,3 +74,8 @@ client/design-system/
 /icon-picker-*.png
 /initial.png
 /intro-latest.png
+
+# Private local project material
+/supabase/
+/docs/
+/client/public/fonts/
