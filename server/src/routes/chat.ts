@@ -3,20 +3,74 @@ import { Router } from 'express';
 import { askAboutNotes, generateFlashcards, generateQuiz } from '../services/openai.js';
 
 const router = Router();
+const MAX_CHAT_HISTORY_MESSAGES = 12;
+const MAX_CHAT_MESSAGE_LENGTH = 4_000;
+const MAX_STUDY_PLAN_LENGTH = 16_000;
+const MAX_STUDY_INSTRUCTIONS_LENGTH = 1_000;
+
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+}
+
+function isStudyPlan(value: unknown): value is {
+  outline: string;
+  instructions: string;
+  guideNoteId?: number;
+  guideName?: string;
+} {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const plan = value as Record<string, unknown>;
+
+  return typeof plan.outline === 'string'
+    && plan.outline.trim().length > 0
+    && plan.outline.length <= MAX_STUDY_PLAN_LENGTH
+    && typeof plan.instructions === 'string'
+    && plan.instructions.length <= MAX_STUDY_INSTRUCTIONS_LENGTH
+    && (plan.guideNoteId === undefined || isPositiveInteger(plan.guideNoteId))
+    && (plan.guideName === undefined || (typeof plan.guideName === 'string' && plan.guideName.length <= 255));
+}
+
+function isChatHistory(value: unknown): value is Array<{ role: 'user' | 'assistant'; content: string }> {
+  return Array.isArray(value)
+    && value.length <= MAX_CHAT_HISTORY_MESSAGES
+    && value.every((item) => (
+      item
+      && typeof item === 'object'
+      && (item as Record<string, unknown>).role !== undefined
+      && ((item as Record<string, unknown>).role === 'user' || (item as Record<string, unknown>).role === 'assistant')
+      && typeof (item as Record<string, unknown>).content === 'string'
+      && ((item as Record<string, unknown>).content as string).length <= MAX_CHAT_MESSAGE_LENGTH
+    ));
+}
 
 router.post('/', async (req, res) => {
   try {
-    const { message, classId, noteId } = req.body;
+    const { message, studyPlan, history = [] } = req.body;
+    const classId = Number(req.body.classId);
+    const noteId = req.body.noteId === undefined ? undefined : Number(req.body.noteId);
 
-    if (!message || !classId) {
+    if (typeof message !== 'string' || !message.trim() || !isPositiveInteger(classId)) {
       return res.status(400).json({
-        error: 'Missing required fields: message and classId',
+        error: 'message and classId are required',
       });
+    }
+    if (noteId !== undefined && !isPositiveInteger(noteId)) {
+      return res.status(400).json({ error: 'noteId must be a positive integer' });
+    }
+    if (studyPlan !== undefined && !isStudyPlan(studyPlan)) {
+      return res.status(400).json({ error: 'Study plan is invalid or too long' });
+    }
+    if (!isChatHistory(history)) {
+      return res.status(400).json({ error: 'Chat history is invalid or too long' });
     }
 
     console.log(`Chat request: "${message}" for class ${classId}`);
 
-    const reply = await askAboutNotes(message, classId, noteId);
+    const reply = await askAboutNotes(message.trim(), classId, {
+      noteId,
+      studyPlan,
+      history,
+    });
 
     res.json({ reply });
   } catch (error: any) {
