@@ -33,7 +33,7 @@ export default function ClassWorkspace() {
   const [selectedNoteId, setSelectedNoteId] = useState<number | undefined>();
   const [folderClasses, setFolderClasses] = useState<Class[]>([]);
   const [classMenuOpen, setClassMenuOpen] = useState(false);
-  const [chatCommand, setChatCommand] = useState<'definitions' | 'formulas' | 'quiz' | 'summarize' | 'study-plan' | null>(null);
+  const [chatCommand, setChatCommand] = useState<'connect' | 'definitions' | 'formulas' | 'quiz' | 'summarize' | 'explain' | 'study-plan' | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [mainView, setMainView] = useState<'chat' | 'flashcards'>('chat');
   const [studyPlanBuilderOpen, setStudyPlanBuilderOpen] = useState(false);
@@ -111,7 +111,7 @@ export default function ClassWorkspace() {
             <SidebarSections
               notes={notes}
               onOpenSourceTree={(category) => setSidebarView({ mode: 'source-tree', category })}
-              onChat={() => { setMainView('chat'); setNotice(null); requestAnimationFrame(() => document.querySelector<HTMLInputElement>('.chat-input')?.focus()); }}
+              onChat={() => { setMainView('chat'); setNotice(null); setChatCommand('explain'); }}
               onQuiz={() => { setMainView('chat'); setNotice(null); setChatCommand('quiz'); }}
               onSummarize={() => { setMainView('chat'); setNotice(null); setChatCommand('summarize'); }}
               onExtractDefinitions={() => { setMainView('chat'); setNotice(null); setChatCommand('definitions'); }}
@@ -122,6 +122,7 @@ export default function ClassWorkspace() {
               }}
               studyPlanActive={Boolean(activeStudyPlan)}
               onEndStudyChat={() => { setActiveStudyPlan(null); setChatCommand(null); setMainView('chat'); }}
+              onConnectConcepts={() => { setMainView('chat'); setNotice(null); setChatCommand('connect'); }}
               onFlashcards={() => { setNotice(null); setMainView('flashcards'); }}
               onComingSoon={(tool) => { setMainView('chat'); setNotice(tool); }}
             />
