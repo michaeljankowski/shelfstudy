@@ -1,4 +1,4 @@
-import { ChevronRight, Plus, BrainCircuit, FileText, Image as ImageIcon, MessageCircle, FileText as SummaryIcon, Layers3, Highlighter, BookOpenCheck, Calculator, ListTree, ListTodo, ClipboardList, Timer, CalendarDays, BellRing } from 'lucide-react';
+import { ChevronRight, Plus, BrainCircuit, CircleStop, FileText, Image as ImageIcon, MessageCircle, FileText as SummaryIcon, Layers3, Highlighter, BookOpenCheck, Calculator, ListTodo, ClipboardList, Timer, CalendarDays, BellRing } from 'lucide-react';
 import { Note } from '../types';
 import './SidebarSections.css';
 
@@ -12,16 +12,19 @@ interface Props {
   onSummarize: () => void;
   onExtractDefinitions: () => void;
   onExtractFormulas: () => void;
+  onStudyPlan: () => void;
+  studyPlanActive: boolean;
+  onEndStudyChat: () => void;
   onFlashcards: () => void;
   onComingSoon: (tool: string) => void;
 }
 
 const AI_TOOLS = [{ label: 'Explain this', icon: MessageCircle }, { label: 'Summarize', icon: SummaryIcon }, { label: 'Study Guide', icon: BookOpenCheck }, { label: 'Flash Cards', icon: Layers3 }, { label: 'Quiz Me', icon: BrainCircuit }, { label: 'Identify Weak Areas', icon: BrainCircuit }];
-const NOTE_TOOLS = [{ label: 'Save to Notes', icon: BellRing }, { label: 'Highlight Important', icon: Highlighter }, { label: 'Extract Definitions', icon: BookOpenCheck }, { label: 'Extract Formulas', icon: Calculator }, { label: 'Create Outline', icon: ListTree }];
+const NOTE_TOOLS = [{ label: 'Save to Notes', icon: BellRing }, { label: 'Highlight Important', icon: Highlighter }, { label: 'Extract Definitions', icon: BookOpenCheck }, { label: 'Extract Formulas', icon: Calculator }];
 const PRODUCTIVITY = [{ label: 'To-Do List', icon: ListTodo }, { label: 'Assignments', icon: ClipboardList }, { label: 'Study Timer', icon: Timer }, { label: 'Calendar', icon: CalendarDays }];
 const AVAILABLE_NOTE_TOOLS = new Set(['Extract Definitions', 'Extract Formulas']);
 
-export default function SidebarSections({ notes, onOpenSourceTree, onChat, onQuiz, onSummarize, onExtractDefinitions, onExtractFormulas, onFlashcards, onComingSoon }: Props) {
+export default function SidebarSections({ notes, onOpenSourceTree, onChat, onQuiz, onSummarize, onExtractDefinitions, onExtractFormulas, onStudyPlan, studyPlanActive, onEndStudyChat, onFlashcards, onComingSoon }: Props) {
   const recent = notes.slice(0, 4);
 
   const handleNoteTool = (item: string) => {
@@ -62,7 +65,13 @@ export default function SidebarSections({ notes, onOpenSourceTree, onChat, onQui
         </button>
       </div>
 
-      <ToolGroup title="AI Tools" items={AI_TOOLS} onAction={(item) => item === 'Explain this' ? onChat() : item === 'Quiz Me' ? onQuiz() : item === 'Summarize' ? onSummarize() : item === 'Flash Cards' ? onFlashcards() : onComingSoon(item)} />
+      <ToolGroup title="AI Tools" items={AI_TOOLS} onAction={(item) => item === 'Explain this' ? onChat() : item === 'Quiz Me' ? onQuiz() : item === 'Summarize' ? onSummarize() : item === 'Study Guide' ? onStudyPlan() : item === 'Flash Cards' ? onFlashcards() : onComingSoon(item)} />
+      {studyPlanActive && (
+        <section className="study-chat-sidebar-status" aria-label="Active study chat">
+          <p>Study chat active</p>
+          <button type="button" onClick={onEndStudyChat}><CircleStop size={16} /> End study chat</button>
+        </section>
+      )}
       <ToolGroup title="Note Tools" items={NOTE_TOOLS} onAction={handleNoteTool} availableItems={AVAILABLE_NOTE_TOOLS} />
       <ToolGroup title="Productivity" items={PRODUCTIVITY} onAction={onComingSoon} />
     </div>
@@ -78,7 +87,7 @@ function ToolGroup({ title, items, onAction, availableItems }: { title: string; 
       <ul className="sidebar-inert-list">
         {items.map(({ label, icon: Icon }) => (
           <li key={label}>
-            <button type="button" onClick={() => onAction(label)} title={availableItems?.has(label) || label === 'Explain this' || label === 'Quiz Me' || label === 'Summarize' || label === 'Flash Cards' ? undefined : `${label} is coming soon`}>
+            <button type="button" onClick={() => onAction(label)} title={availableItems?.has(label) || label === 'Explain this' || label === 'Quiz Me' || label === 'Summarize' || label === 'Study Guide' || label === 'Flash Cards' ? undefined : `${label} is coming soon`}>
               <Icon size={16} />
               <span>{label}</span>
             </button>

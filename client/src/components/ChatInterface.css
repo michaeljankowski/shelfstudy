@@ -3,6 +3,8 @@
 .chat-clear { background:transparent; color:var(--text-secondary); border:0; }
 .workspace-coming-soon { display:flex; gap:8px; align-items:baseline; margin:0 24px; padding:10px 14px; border:1px solid var(--border); border-radius:12px; background:var(--bg-secondary); color:var(--text-secondary); }
 .workspace-coming-soon strong { color:var(--text-primary); }
+.active-study-plan-banner { display:flex; align-items:baseline; gap:8px; margin:0 24px; padding:10px 14px; border:1px solid rgba(var(--accent-rgb),.34); border-radius:12px; background:rgba(var(--accent-rgb),.08); color:var(--text-secondary); }
+.active-study-plan-banner strong { color:var(--text-primary); }
 .chat-messages { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:14px; padding:36px 24px 22px; }
 .empty-state.chat-empty-state { align-self:stretch; height:100%; padding:0 24px; color:var(--text-secondary); }
 .chat-empty-state h3 { font-size:1.55rem; font-weight:400; }.chat-empty-state p { max-width:340px; font-size:1rem; color:var(--text-secondary); }

@@ -7,6 +7,7 @@ import ChatInterface from '../components/ChatInterface';
 import FlashcardStudy from '../components/FlashcardStudy';
 import SidebarSections from '../components/SidebarSections';
 import SourceTree from '../components/SourceTree';
+import StudyPlanBuilder, { StudyPlanDraft } from '../components/StudyPlanBuilder';
 import { markClassOpened } from '../utils/classLastOpened';
 import './ClassWorkspace.css';
 
@@ -32,9 +33,11 @@ export default function ClassWorkspace() {
   const [selectedNoteId, setSelectedNoteId] = useState<number | undefined>();
   const [folderClasses, setFolderClasses] = useState<Class[]>([]);
   const [classMenuOpen, setClassMenuOpen] = useState(false);
-  const [chatCommand, setChatCommand] = useState<'definitions' | 'formulas' | 'quiz' | 'summarize' | null>(null);
+  const [chatCommand, setChatCommand] = useState<'definitions' | 'formulas' | 'quiz' | 'summarize' | 'study-plan' | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [mainView, setMainView] = useState<'chat' | 'flashcards'>('chat');
+  const [studyPlanBuilderOpen, setStudyPlanBuilderOpen] = useState(false);
+  const [activeStudyPlan, setActiveStudyPlan] = useState<StudyPlanDraft | null>(null);
 
   useEffect(() => {
     if (Number.isSafeInteger(id) && id > 0) markClassOpened(id);
@@ -113,6 +116,12 @@ export default function ClassWorkspace() {
               onSummarize={() => { setMainView('chat'); setNotice(null); setChatCommand('summarize'); }}
               onExtractDefinitions={() => { setMainView('chat'); setNotice(null); setChatCommand('definitions'); }}
               onExtractFormulas={() => { setMainView('chat'); setNotice(null); setChatCommand('formulas'); }}
+              onStudyPlan={() => {
+                setNotice(null);
+                setStudyPlanBuilderOpen(true);
+              }}
+              studyPlanActive={Boolean(activeStudyPlan)}
+              onEndStudyChat={() => { setActiveStudyPlan(null); setChatCommand(null); setMainView('chat'); }}
               onFlashcards={() => { setNotice(null); setMainView('flashcards'); }}
               onComingSoon={(tool) => { setMainView('chat'); setNotice(tool); }}
             />
@@ -134,10 +143,27 @@ export default function ClassWorkspace() {
           {mainView === 'flashcards' ? (
             <FlashcardStudy classId={id} selectedNoteId={selectedNoteId} onClose={() => setMainView('chat')} />
           ) : (
-            <ChatInterface classId={id} selectedNoteId={selectedNoteId} command={chatCommand} onCommandHandled={() => setChatCommand(null)} onNoteSaved={() => setRefreshTrigger((n) => n + 1)} notice={notice} />
+            <ChatInterface key={activeStudyPlan ? 'study-plan-chat' : 'study-chat'} classId={id} selectedNoteId={selectedNoteId} studyPlan={activeStudyPlan ?? undefined} command={chatCommand} onCommandHandled={() => setChatCommand(null)} onNoteSaved={() => setRefreshTrigger((n) => n + 1)} notice={notice} />
           )}
         </main>
       </div>
+
+      {studyPlanBuilderOpen && (
+        <StudyPlanBuilder
+          classId={id}
+          className={cls?.name ?? 'This class'}
+          notes={notes}
+          initialDraft={activeStudyPlan}
+          onClose={() => setStudyPlanBuilderOpen(false)}
+          onNoteUploaded={() => setRefreshTrigger((n) => n + 1)}
+          onStartPlan={(draft) => {
+            setActiveStudyPlan(draft);
+            setStudyPlanBuilderOpen(false);
+            setMainView('chat');
+            setChatCommand('study-plan');
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -28,6 +28,13 @@ export interface Class {
     timestamp: Date;
   }
 
+  export interface StudyPlanContext {
+    instructions: string;
+    outline: string;
+    guideNoteId?: number;
+    guideName?: string;
+  }
+
   export interface Flashcard {
     front: string;
     back: string;

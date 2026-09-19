@@ -4,7 +4,7 @@ import { BookmarkPlus, Copy, ThumbsDown, ThumbsUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeKatex from 'rehype-katex';
 import remarkMath from 'remark-math';
-import { ChatMessage } from '../types';
+import { ChatMessage, StudyPlanContext } from '../types';
 import { sendChatMessage, generateQuiz, uploadNote } from '../api';
 import 'katex/dist/katex.min.css';
 import './ChatInterface.css';
@@ -12,13 +12,14 @@ import './ChatInterface.css';
 interface Props {
   classId: number;
   selectedNoteId?: number;
-  command: 'definitions' | 'formulas' | 'quiz' | 'summarize' | null;
+  studyPlan?: StudyPlanContext;
+  command: 'definitions' | 'formulas' | 'quiz' | 'summarize' | 'study-plan' | null;
   onCommandHandled: () => void;
   onNoteSaved: () => void;
   notice: string | null;
 }
 
-export default function ChatInterface({ classId, selectedNoteId, command, onCommandHandled, onNoteSaved, notice }: Props) {
+export default function ChatInterface({ classId, selectedNoteId, studyPlan, command, onCommandHandled, onNoteSaved, notice }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -45,7 +46,7 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
     setError('');
 
     try {
-      const response = await sendChatMessage(classId, input, selectedNoteId);
+      const response = await sendChatMessage(classId, input, selectedNoteId, studyPlan, messages.slice(-12));
       const aiMessage: ChatMessage = {
         role: 'assistant',
         content: response.data.reply,
@@ -67,6 +68,14 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
   };
 
   const handleQuizRequest = async () => {
+    if (studyPlan) {
+      await sendPrompt(
+        'Continue the active study plan with one source-grounded knowledge-check question. Wait for my answer before giving the next question.',
+        'Continue my study plan with a knowledge check.',
+      );
+      return;
+    }
+
     setSending(true);
     setError('');
 
@@ -117,13 +126,20 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
     await sendPrompt(prompt, 'Extract formulas from my study sources.');
   };
 
+  const handleStudyPlanStart = async () => {
+    await sendPrompt(
+      'Begin the active study plan. Start with the first session, briefly establish the first concept, then ask me one source-grounded question to check my understanding. Wait for my answer before continuing.',
+      'Start my study plan.',
+    );
+  };
+
   const sendPrompt = async (prompt: string, displayMessage = prompt) => {
     if (sending) return;
     setSending(true);
     setError('');
     setMessages((prev) => [...prev, { role: 'user', content: displayMessage, timestamp: new Date() }]);
     try {
-      const response = await sendChatMessage(classId, prompt, selectedNoteId);
+      const response = await sendChatMessage(classId, prompt, selectedNoteId, studyPlan, messages.slice(-12));
       setMessages((prev) => [...prev, { role: 'assistant', content: response.data.reply, timestamp: new Date() }]);
     } catch (err) {
       const message = axios.isAxiosError(err) ? err.response?.data?.error : undefined;
@@ -138,6 +154,7 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
     if (command === 'summarize') handleSummarizeRequest();
     if (command === 'definitions') handleExtractDefinitionsRequest();
     if (command === 'formulas') handleExtractFormulasRequest();
+    if (command === 'study-plan') handleStudyPlanStart();
     onCommandHandled();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [command]);
@@ -164,7 +181,9 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
 
   return (
     <div className="chat-container">
-      <div className="chat-header"><div><h3>Study companion</h3><p>Ask questions grounded in your uploaded sources.</p></div><button className="chat-clear" onClick={handleClear} disabled={messages.length === 0}>Clear chat</button></div>
+      <div className="chat-header"><div><h3>{studyPlan ? 'Study plan chat' : 'Study companion'}</h3><p>{studyPlan ? 'Following your plan and checking understanding one step at a time.' : 'Ask questions grounded in your uploaded sources.'}</p></div><button className="chat-clear" onClick={handleClear} disabled={messages.length === 0}>Clear chat</button></div>
+
+      {studyPlan && <div className="active-study-plan-banner" role="status"><strong>Study plan active</strong><span>{studyPlan.guideName ? `Using ${studyPlan.guideName} and relevant class notes.` : 'Using relevant notes from this class.'}</span></div>}
 
       {notice && <div className="workspace-coming-soon" role="status"><strong>{notice}</strong><span>This workspace is ready for it, but the feature is still coming soon.</span></div>}
 
@@ -229,7 +248,7 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Start typing…"
+          placeholder={studyPlan ? 'Answer the question or ask for help…' : 'Start typing…'}
           disabled={sending}
           className="chat-input"
         />
