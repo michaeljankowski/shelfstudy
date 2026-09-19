@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Class, Flashcard, Folder, Note, OfficePreview } from './types';
+import { ChatMessage, Class, Flashcard, Folder, Note, OfficePreview, StudyPlanContext } from './types';
 
 const API_BASE = '/api';
 
@@ -57,11 +57,19 @@ export const deleteNote = (noteId: number) =>
 export const getOfficePreview = (noteId: number) =>
   axios.get<OfficePreview>(`${API_BASE}/notes/${noteId}/preview`);
 
-export const sendChatMessage = (classId: number, message: string, noteId?: number) =>
+export const sendChatMessage = (
+  classId: number,
+  message: string,
+  noteId?: number,
+  studyPlan?: StudyPlanContext,
+  history: ChatMessage[] = [],
+) =>
   axios.post<{ reply: string }>(`${API_BASE}/chat`, {
     message,
     classId,
     noteId,
+    studyPlan,
+    history: history.map(({ role, content }) => ({ role, content })),
   });
 
 export const generateQuiz = (classId: number, numQuestions: number = 5) =>

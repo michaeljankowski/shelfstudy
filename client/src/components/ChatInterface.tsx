@@ -1,20 +1,33 @@
 import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { BookmarkPlus, Copy, ThumbsDown, ThumbsUp } from 'lucide-react';
-import { ChatMessage } from '../types';
+import ReactMarkdown from 'react-markdown';
+import rehypeKatex from 'rehype-katex';
+import remarkMath from 'remark-math';
+import { ChatMessage, StudyPlanContext } from '../types';
 import { sendChatMessage, generateQuiz, uploadNote } from '../api';
+import 'katex/dist/katex.min.css';
 import './ChatInterface.css';
 
 interface Props {
   classId: number;
   selectedNoteId?: number;
-  command: 'connect' | 'quiz' | 'summarize' | 'explain' | null;
+  studyPlan?: StudyPlanContext;
+  command:
+    | 'connect'
+    | 'definitions'
+    | 'formulas'
+    | 'quiz'
+    | 'summarize'
+    | 'explain'
+    | 'study-plan'
+    | null;
   onCommandHandled: () => void;
   onNoteSaved: () => void;
   notice: string | null;
 }
 
-export default function ChatInterface({ classId, selectedNoteId, command, onCommandHandled, onNoteSaved, notice }: Props) {
+export default function ChatInterface({ classId, selectedNoteId, studyPlan, command, onCommandHandled, onNoteSaved, notice }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -41,7 +54,7 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
     setError('');
 
     try {
-      const response = await sendChatMessage(classId, input, selectedNoteId);
+      const response = await sendChatMessage(classId, input, selectedNoteId, studyPlan, messages.slice(-12));
       const aiMessage: ChatMessage = {
         role: 'assistant',
         content: response.data.reply,
@@ -63,6 +76,14 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
   };
 
   const handleQuizRequest = async () => {
+    if (studyPlan) {
+      await sendPrompt(
+        'Continue the active study plan with one source-grounded knowledge-check question. Wait for my answer before giving the next question.',
+        'Continue my study plan with a knowledge check.',
+      );
+      return;
+    }
+
     setSending(true);
     setError('');
 
@@ -115,13 +136,34 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
     await sendPrompt(prompt);
   };
 
-  const sendPrompt = async (prompt: string) => {
+  const handleExtractDefinitionsRequest = async () => {
+    const prompt = selectedNoteId
+      ? 'Extract only the important terms and definitions from the selected source. Return concise Markdown bullets in the format **Term** — definition. Include only definitions or explanations supported by the source. Do not add outside knowledge, invent definitions, or include terms that the source does not explain.'
+      : 'Extract the important terms and definitions from my relevant class sources. Return concise Markdown bullets in the format **Term** — definition. Include the supporting source filename after each definition. Combine duplicate definitions only when the sources agree. Do not add outside knowledge or invent definitions.';
+    await sendPrompt(prompt, 'Extract definitions from my study sources.');
+  };
+
+  const handleExtractFormulasRequest = async () => {
+    const prompt = selectedNoteId
+      ? 'Extract only the formulas, equations, identities, and calculation rules explicitly present in the selected source. For each item, give a short label, put the expression on its own line using $$...$$ LaTeX delimiters, and explain the variables only when the source explains them. Use $...$ for inline math. Do not use \\( ... \\) or \\[ ... \\], do not derive new formulas, and do not add outside information.'
+      : 'Extract the formulas, equations, identities, and calculation rules from my relevant class sources. For each item, give a short label, put the expression on its own line using $$...$$ LaTeX delimiters, explain the variables only when the sources explain them, and name the supporting source file. Use $...$ for inline math. Do not use \\( ... \\) or \\[ ... \\], do not derive new formulas, and do not add outside information.';
+    await sendPrompt(prompt, 'Extract formulas from my study sources.');
+  };
+
+  const handleStudyPlanStart = async () => {
+    await sendPrompt(
+      'Begin the active study plan. Start with the first session, briefly establish the first concept, then ask me one source-grounded question to check my understanding. Wait for my answer before continuing.',
+      'Start my study plan.',
+    );
+  };
+
+  const sendPrompt = async (prompt: string, displayMessage = prompt) => {
     if (sending) return;
     setSending(true);
     setError('');
-    setMessages((prev) => [...prev, { role: 'user', content: prompt, timestamp: new Date() }]);
+    setMessages((prev) => [...prev, { role: 'user', content: displayMessage, timestamp: new Date() }]);
     try {
-      const response = await sendChatMessage(classId, prompt, selectedNoteId);
+      const response = await sendChatMessage(classId, prompt, selectedNoteId, studyPlan, messages.slice(-12));
       setMessages((prev) => [...prev, { role: 'assistant', content: response.data.reply, timestamp: new Date() }]);
     } catch (err) {
       const message = axios.isAxiosError(err) ? err.response?.data?.error : undefined;
@@ -134,6 +176,9 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
     if (!command) return;
     if (command === 'quiz') handleQuizRequest();
     if (command === 'summarize') handleSummarizeRequest();
+    if (command === 'definitions') handleExtractDefinitionsRequest();
+    if (command === 'formulas') handleExtractFormulasRequest();
+    if (command === 'study-plan') handleStudyPlanStart();
     if (command === 'explain') handleExplainRequest();
     if (command === 'connect') handleConnectConceptsRequest();
     onCommandHandled();
@@ -162,7 +207,9 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
 
   return (
     <div className="chat-container">
-      <div className="chat-header"><div><h3>Study companion</h3><p>Ask questions grounded in your uploaded sources.</p></div><button className="chat-clear" onClick={handleClear} disabled={messages.length === 0}>Clear chat</button></div>
+      <div className="chat-header"><div><h3>{studyPlan ? 'Study plan chat' : 'Study companion'}</h3><p>{studyPlan ? 'Following your plan and checking understanding one step at a time.' : 'Ask questions grounded in your uploaded sources.'}</p></div><button className="chat-clear" onClick={handleClear} disabled={messages.length === 0}>Clear chat</button></div>
+
+      {studyPlan && <div className="active-study-plan-banner" role="status"><strong>Study plan active</strong><span>{studyPlan.guideName ? `Using ${studyPlan.guideName} and relevant class notes.` : 'Using relevant notes from this class.'}</span></div>}
 
       {notice && <div className="workspace-coming-soon" role="status"><strong>{notice}</strong><span>This workspace is ready for it, but the feature is still coming soon.</span></div>}
 
@@ -193,7 +240,13 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
                 className={`message ${msg.role === 'user' ? 'message-user' : 'message-ai'}`}
               >
                 <div className="message-content">
-                  <div className="message-text">{msg.content}</div>
+                  <div className="message-text">
+                    {msg.role === 'assistant' ? (
+                      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, { throwOnError: false }]]}>
+                        {normalizeMathDelimiters(msg.content)}
+                      </ReactMarkdown>
+                    ) : msg.content}
+                  </div>
                   {msg.role === 'assistant' && <div className="message-tools"><button type="button" aria-label="Save response to notes" title="Save to Notes" onClick={() => saveToNotes(msg.content, idx)} disabled={savedMessage === idx}>{savedMessage === idx ? 'Saving…' : <BookmarkPlus size={16} />}</button><button type="button" aria-label="Copy response" onClick={() => navigator.clipboard?.writeText(msg.content)}><Copy size={16} /></button><button type="button" aria-label="Helpful response" title="Feedback is coming soon"><ThumbsUp size={16} /></button><button type="button" aria-label="Not helpful" title="Feedback is coming soon"><ThumbsDown size={16} /></button></div>}
                 </div>
               </div>
@@ -221,7 +274,7 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Start typing…"
+          placeholder={studyPlan ? 'Answer the question or ask for help…' : 'Start typing…'}
           disabled={sending}
           className="chat-input"
         />
@@ -235,4 +288,10 @@ export default function ChatInterface({ classId, selectedNoteId, command, onComm
       </form>
     </div>
   );
+}
+
+function normalizeMathDelimiters(content: string) {
+  return content
+    .replace(/\\\\\[([\s\S]*?)\\\\\]/g, (_, expression: string) => `$$\n${expression.trim()}\n$$`)
+    .replace(/\\\\\(([\s\S]*?)\\\\\)/g, (_, expression: string) => `$${expression.trim()}$`);
 }
