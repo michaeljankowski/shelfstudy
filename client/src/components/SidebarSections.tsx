@@ -19,6 +19,9 @@ interface Props {
   onExtractFormulas: () => void;
   onStudyPlan: () => void;
   studyPlanActive: boolean;
+  pausedStudyPlan: boolean;
+  onPauseStudyChat: () => void;
+  onResumeStudyChat: () => void;
   onEndStudyChat: () => void;
   onFlashcards: () => void;
   onComingSoon: (tool: string) => void;
@@ -51,7 +54,7 @@ const AVAILABLE_NOTE_TOOLS = new Set(['Extract Definitions', 'Extract Formulas']
 export default function SidebarSections({
   notes, onOpenSourceTree, onChat, onQuiz, onSummarize, onConnectConcepts,
   onExtractDefinitions, onExtractFormulas, onStudyPlan, studyPlanActive,
-  onEndStudyChat, onFlashcards, onComingSoon,
+  pausedStudyPlan, onPauseStudyChat, onResumeStudyChat, onEndStudyChat, onFlashcards, onComingSoon,
 }: Props) {
   const recent = notes.slice(0, 4);
 
@@ -101,7 +104,14 @@ export default function SidebarSections({
       {studyPlanActive && (
         <section className="study-chat-sidebar-status" aria-label="Active study chat">
           <p>Study chat active</p>
+          <button type="button" onClick={onPauseStudyChat}>Pause study chat</button>
           <button type="button" onClick={onEndStudyChat}><CircleStop size={16} /> End study chat</button>
+        </section>
+      )}
+      {!studyPlanActive && pausedStudyPlan && (
+        <section className="study-chat-sidebar-status" aria-label="Paused study chat">
+          <p>Study chat paused</p>
+          <button type="button" onClick={onResumeStudyChat}>Resume study chat</button>
         </section>
       )}
       <ToolGroup title="Note Tools" items={NOTE_TOOLS} onAction={handleNoteTool} availableItems={AVAILABLE_NOTE_TOOLS} />

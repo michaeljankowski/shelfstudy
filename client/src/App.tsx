@@ -6,8 +6,13 @@ import ClassWorkspace from './routes/ClassWorkspace';
 import LibraryStatus from './routes/LibraryStatus';
 import ProductivityStatus from './routes/ProductivityStatus';
 import './styles/App.css';
+import { useAuth } from './auth/AuthProvider';
+import AuthPage from './routes/AuthPage';
 
 function App() {
+  const { session, loading } = useAuth();
+  if (loading) return <main aria-busy="true">Loading ShelfStudy…</main>;
+  if (!session) return <AuthPage />;
   return (
     <BrowserRouter>
       <Routes>

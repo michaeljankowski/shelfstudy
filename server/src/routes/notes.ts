@@ -6,6 +6,7 @@ import { createOfficePreview } from '../services/officePreview.js';
 import { prepareSource } from '../services/sourceIngestion.js';
 import { validateUploadedSource } from '../services/sourceValidation.js';
 import { deleteImage, downloadSource, uploadSource } from '../services/storage.js';
+import { authenticatedUserId } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -52,6 +53,7 @@ function receiveSource(req: Request, res: Response, next: NextFunction) {
 
 router.post('/', admitUpload, receiveSource, async (req, res) => {
   try {
+    const ownerId = authenticatedUserId(req);
     const { classId } = req.body;
     const file = req.file;
 
@@ -65,6 +67,10 @@ router.post('/', admitUpload, receiveSource, async (req, res) => {
     if (!Number.isSafeInteger(numericClassId) || numericClassId <= 0) {
       return res.status(400).json({ error: 'classId must be a positive integer' });
     }
+
+    const { data: ownedClass } = await supabase.from('classes').select('id')
+      .eq('id', numericClassId).eq('owner_id', ownerId).maybeSingle();
+    if (!ownedClass) return res.status(404).json({ error: 'Class not found' });
 
     const validation = validateUploadedSource(file);
     if (!validation.ok) {
@@ -80,12 +86,13 @@ router.post('/', admitUpload, receiveSource, async (req, res) => {
       mimetype: prepared.mimeType,
       size: prepared.buffer.byteLength,
     };
-    const sourceUrl = await uploadSource(storedFile, numericClassId);
+    const sourceUrl = await uploadSource(storedFile, numericClassId, ownerId);
 
     const { data, error } = await supabase
       .from('notes')
       .insert({
         class_id: numericClassId,
+        owner_id: ownerId,
         image_url: sourceUrl,
         file_type: prepared.mimeType,
         filename: prepared.filename,
@@ -114,6 +121,7 @@ router.post('/', admitUpload, receiveSource, async (req, res) => {
 
 router.get('/class/:classId', async (req, res) => {
   try {
+    const ownerId = authenticatedUserId(req);
     const { classId } = req.params;
 
     console.log(`Fetching notes for class ${classId}`);
@@ -122,6 +130,7 @@ router.get('/class/:classId', async (req, res) => {
       .from('notes')
       .select('*')
       .eq('class_id', classId)
+      .eq('owner_id', ownerId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -136,6 +145,7 @@ router.get('/class/:classId', async (req, res) => {
 
 router.get('/:id/preview', async (req, res) => {
   try {
+    const ownerId = authenticatedUserId(req);
     const id = Number(req.params.id);
     if (!Number.isSafeInteger(id) || id <= 0) {
       return res.status(400).json({ error: 'Note id must be a positive integer' });
@@ -145,6 +155,7 @@ router.get('/:id/preview', async (req, res) => {
       .from('notes')
       .select('image_url, file_type')
       .eq('id', id)
+      .eq('owner_id', ownerId)
       .single();
 
     if (error || !note) return res.status(404).json({ error: 'Note not found' });
@@ -167,12 +178,14 @@ router.get('/:id/preview', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
+    const ownerId = authenticatedUserId(req);
     const { id } = req.params;
 
     const { data, error } = await supabase
       .from('notes')
       .select('*')
       .eq('id', id)
+      .eq('owner_id', ownerId)
       .single();
 
     if (error) throw error;
@@ -186,12 +199,14 @@ router.get('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
+    const ownerId = authenticatedUserId(req);
     const { id } = req.params;
 
     const { data: note, error: fetchError } = await supabase
       .from('notes')
       .select('image_url')
       .eq('id', id)
+      .eq('owner_id', ownerId)
       .single();
 
     if (fetchError) throw fetchError;
@@ -199,7 +214,8 @@ router.delete('/:id', async (req, res) => {
     const { error: deleteError } = await supabase
       .from('notes')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('owner_id', ownerId);
 
     if (deleteError) throw deleteError;
 

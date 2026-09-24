@@ -2,12 +2,13 @@ import { supabase, STORAGE_BUCKET } from '../config/supabase.js';
 
 export async function uploadSource(
   file: Express.Multer.File,
-  classId: number
+  classId: number,
+  ownerId: string,
 ): Promise<string> {
   try {
     const timestamp = Date.now();
     const filename = `${timestamp}-${file.originalname}`;
-    const filePath = `${classId}/${filename}`;
+    const filePath = `${ownerId}/${classId}/${filename}`;
 
     console.log(`Uploading source: ${filePath}`);
 

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Menu, ChevronDown, Search } from 'lucide-react';
-import { Class, Note } from '../types';
-import { getClass, getClasses, getNotesByClass } from '../api';
+import { ChatMessage, ChatSession, Class, Note } from '../types';
+import { createChatSession, getChatMessages, getChatSessions, getClass, getClasses, getNotesByClass, updateChatSession, updateStudyPlan } from '../api';
 import ChatInterface from '../components/ChatInterface';
 import FlashcardStudy from '../components/FlashcardStudy';
 import SidebarSections from '../components/SidebarSections';
@@ -38,6 +38,11 @@ export default function ClassWorkspace() {
   const [mainView, setMainView] = useState<'chat' | 'flashcards'>('chat');
   const [studyPlanBuilderOpen, setStudyPlanBuilderOpen] = useState(false);
   const [activeStudyPlan, setActiveStudyPlan] = useState<StudyPlanDraft | null>(null);
+  const [generalSession, setGeneralSession] = useState<ChatSession | null>(null);
+  const [studySession, setStudySession] = useState<ChatSession | null>(null);
+  const [pausedStudySession, setPausedStudySession] = useState<ChatSession | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
 
   useEffect(() => {
     if (Number.isSafeInteger(id) && id > 0) markClassOpened(id);
@@ -46,6 +51,76 @@ export default function ClassWorkspace() {
   useEffect(() => {
     getClass(id).then((res) => setCls(res.data));
   }, [id]);
+
+  useEffect(() => {
+    let active = true;
+    queueMicrotask(() => { if (active) setMessagesLoading(true); });
+    getChatSessions(id).then(async ({ data: sessions }) => {
+      if (!active) return;
+      let general = sessions.find((session) => session.kind === 'general' && session.status === 'active') ?? null;
+      if (!general) general = (await createChatSession(id, 'general')).data;
+      const currentStudy = sessions.find((session) => session.kind === 'study_plan' && session.status === 'active') ?? null;
+      const pausedStudy = sessions.find((session) => session.kind === 'study_plan' && session.status === 'paused') ?? null;
+      if (!active) return;
+      setGeneralSession(general);
+      setStudySession(currentStudy);
+      setPausedStudySession(pausedStudy);
+      setActiveStudyPlan(currentStudy?.study_plan ?? null);
+    }).catch(() => setNotice('Could not restore conversations'));
+    return () => { active = false; };
+  }, [id]);
+
+  const currentSession = studySession ?? generalSession;
+  const currentSessionId = currentSession?.id;
+  useEffect(() => {
+    if (!currentSessionId) return;
+    let active = true;
+    queueMicrotask(() => { if (active) setMessagesLoading(true); });
+    getChatMessages(currentSessionId).then(({ data }) => {
+      if (!active) return;
+      setMessages(data.map((message) => ({ id: message.id, role: message.role, content: message.content, timestamp: new Date(message.created_at) })));
+    }).catch(() => setNotice('Could not load this conversation'))
+      .finally(() => { if (active) setMessagesLoading(false); });
+    return () => { active = false; };
+  }, [currentSessionId]);
+
+  const pauseStudyChat = async () => {
+    if (!studySession) return;
+    const paused = (await updateChatSession(studySession.id, 'paused')).data;
+    setPausedStudySession(paused);
+    setStudySession(null);
+    setActiveStudyPlan(null);
+  };
+
+  const resumeStudyChat = async () => {
+    if (!pausedStudySession) return;
+    const resumed = (await updateChatSession(pausedStudySession.id, 'active')).data;
+    setPausedStudySession(null);
+    setStudySession(resumed);
+    setActiveStudyPlan(resumed.study_plan);
+    setMainView('chat');
+  };
+
+  const endStudyChat = async () => {
+    if (studySession) await updateChatSession(studySession.id, 'archived');
+    setStudySession(null);
+    setActiveStudyPlan(null);
+    setChatCommand(null);
+    setMainView('chat');
+  };
+
+  const clearCurrentChat = async () => {
+    if (!currentSession) return;
+    await updateChatSession(currentSession.id, 'archived');
+    if (currentSession.kind === 'study_plan') {
+      setStudySession(null);
+      setActiveStudyPlan(null);
+    } else {
+      const replacement = (await createChatSession(id, 'general')).data;
+      setGeneralSession(replacement);
+      setMessages([]);
+    }
+  };
 
   useEffect(() => {
     if (!folderId) return;
@@ -121,7 +196,10 @@ export default function ClassWorkspace() {
                 setStudyPlanBuilderOpen(true);
               }}
               studyPlanActive={Boolean(activeStudyPlan)}
-              onEndStudyChat={() => { setActiveStudyPlan(null); setChatCommand(null); setMainView('chat'); }}
+              pausedStudyPlan={Boolean(pausedStudySession)}
+              onPauseStudyChat={pauseStudyChat}
+              onResumeStudyChat={resumeStudyChat}
+              onEndStudyChat={endStudyChat}
               onConnectConcepts={() => { setMainView('chat'); setNotice(null); setChatCommand('connect'); }}
               onFlashcards={() => { setNotice(null); setMainView('flashcards'); }}
               onComingSoon={(tool) => { setMainView('chat'); setNotice(tool); }}
@@ -144,7 +222,7 @@ export default function ClassWorkspace() {
           {mainView === 'flashcards' ? (
             <FlashcardStudy classId={id} selectedNoteId={selectedNoteId} onClose={() => setMainView('chat')} />
           ) : (
-            <ChatInterface key={activeStudyPlan ? 'study-plan-chat' : 'study-chat'} classId={id} selectedNoteId={selectedNoteId} studyPlan={activeStudyPlan ?? undefined} command={chatCommand} onCommandHandled={() => setChatCommand(null)} onNoteSaved={() => setRefreshTrigger((n) => n + 1)} notice={notice} />
+            <ChatInterface classId={id} sessionId={currentSession?.id} messages={messages} setMessages={setMessages} messagesLoading={messagesLoading} selectedNoteId={selectedNoteId} studyPlan={activeStudyPlan ?? undefined} command={chatCommand} onCommandHandled={() => setChatCommand(null)} onNoteSaved={() => setRefreshTrigger((n) => n + 1)} notice={notice} onClearChat={clearCurrentChat} />
           )}
         </main>
       </div>
@@ -154,15 +232,30 @@ export default function ClassWorkspace() {
           classId={id}
           className={cls?.name ?? 'This class'}
           notes={notes}
-          initialDraft={activeStudyPlan}
+          initialDraft={activeStudyPlan ?? pausedStudySession?.study_plan}
           onClose={() => setStudyPlanBuilderOpen(false)}
           onNoteUploaded={() => setRefreshTrigger((n) => n + 1)}
-          onStartPlan={(draft) => {
+          onStartPlan={async (draft) => {
+            const session = (await createChatSession(id, 'study_plan', draft)).data;
+            setStudySession(session);
+            setPausedStudySession(null);
             setActiveStudyPlan(draft);
             setStudyPlanBuilderOpen(false);
             setMainView('chat');
             setChatCommand('study-plan');
           }}
+          onSavePlan={studySession || pausedStudySession ? async (draft) => {
+            const sessionToUpdate = studySession ?? pausedStudySession;
+            if (!sessionToUpdate) return;
+            const updated = (await updateStudyPlan(sessionToUpdate.id, draft)).data;
+            if (updated.status === 'active') {
+              setStudySession(updated);
+              setActiveStudyPlan(updated.study_plan);
+            } else {
+              setPausedStudySession(updated);
+            }
+            setStudyPlanBuilderOpen(false);
+          } : undefined}
         />
       )}
     </div>
