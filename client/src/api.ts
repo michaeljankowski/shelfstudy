@@ -1,7 +1,15 @@
 import axios from 'axios';
-import { ChatMessage, Class, Flashcard, Folder, Note, OfficePreview, StudyPlanContext } from './types';
+import { ChatSession, Class, Flashcard, Folder, Note, OfficePreview, StoredChatMessage, StudyPlanContext } from './types';
+import { supabase } from './config/supabase';
 
 const API_BASE = '/api';
+
+axios.interceptors.request.use(async (config) => {
+  if (!config.url?.startsWith(API_BASE)) return config;
+  const { data } = await supabase.auth.getSession();
+  if (data.session?.access_token) config.headers.Authorization = `Bearer ${data.session.access_token}`;
+  return config;
+});
 
 export const getClasses = () =>
   axios.get<Class[]>(`${API_BASE}/classes`);
@@ -58,19 +66,35 @@ export const getOfficePreview = (noteId: number) =>
   axios.get<OfficePreview>(`${API_BASE}/notes/${noteId}/preview`);
 
 export const sendChatMessage = (
-  classId: number,
+  sessionId: string,
   message: string,
+  clientMessageId: string,
   noteId?: number,
-  studyPlan?: StudyPlanContext,
-  history: ChatMessage[] = [],
 ) =>
-  axios.post<{ reply: string }>(`${API_BASE}/chat`, {
+  axios.post<{ reply: string; sessionId: string; message: StoredChatMessage }>(`${API_BASE}/chat`, {
     message,
-    classId,
+    sessionId,
+    clientMessageId,
     noteId,
-    studyPlan,
-    history: history.map(({ role, content }) => ({ role, content })),
   });
+
+export const getChatSessions = (classId: number) =>
+  axios.get<ChatSession[]>(`${API_BASE}/chat/sessions`, { params: { classId } });
+
+export const createChatSession = (classId: number, kind: ChatSession['kind'], studyPlan?: StudyPlanContext) =>
+  axios.post<ChatSession>(`${API_BASE}/chat/sessions`, { classId, kind, studyPlan });
+
+export const getChatMessages = (sessionId: string) =>
+  axios.get<StoredChatMessage[]>(`${API_BASE}/chat/sessions/${sessionId}/messages`);
+
+export const updateChatSession = (sessionId: string, status: ChatSession['status']) =>
+  axios.patch<ChatSession>(`${API_BASE}/chat/sessions/${sessionId}`, { status });
+
+export const updateStudyPlan = (sessionId: string, studyPlan: StudyPlanContext) =>
+  axios.patch<ChatSession>(`${API_BASE}/chat/sessions/${sessionId}`, { studyPlan });
+
+export const generateStudyPlanSuggestion = (classId: number, prompt: string, noteId?: number) =>
+  axios.post<{ reply: string }>(`${API_BASE}/chat/plan-suggestion`, { classId, prompt, noteId });
 
 export const generateQuiz = (classId: number, numQuestions: number = 5) =>
   axios.post<{ questions: string[] }>(`${API_BASE}/chat/quiz`, {

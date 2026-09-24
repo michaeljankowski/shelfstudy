@@ -23,9 +23,29 @@ export interface Class {
   }
   
   export interface ChatMessage {
+    id?: number;
     role: 'user' | 'assistant';
     content: string;
     timestamp: Date;
+  }
+
+  export interface ChatSession {
+    id: string;
+    class_id: number;
+    kind: 'general' | 'study_plan';
+    title: string | null;
+    study_plan: StudyPlanContext | null;
+    status: 'active' | 'paused' | 'archived';
+    created_at: string;
+    updated_at: string;
+  }
+
+  export interface StoredChatMessage {
+    id: number;
+    session_id: string;
+    role: 'user' | 'assistant';
+    content: string;
+    created_at: string;
   }
 
   export interface StudyPlanContext {
