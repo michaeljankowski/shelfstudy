@@ -108,26 +108,27 @@ export default function AuthPage({ passwordRecovery = false, onPasswordRecovered
   const busy = busyAction !== null;
 
   return (
-    <main className="auth-page">
+    <main className={`auth-page ${mode === 'sign-up' && !passwordRecovery ? 'is-sign-up' : 'is-sign-in'}`}>
       <section className="auth-panel" aria-labelledby="auth-heading">
         <header className="auth-brand">
           <div className="auth-brand-mark" aria-hidden="true">S</div>
           <p className="auth-wordmark">ShelfStudy</p>
         </header>
 
-        <div className="auth-heading-group">
-          <p className="auth-eyebrow">Your study workspace</p>
+        <div className="auth-panel-content">
+          <div className="auth-heading-group">
+          <p className="auth-eyebrow">Your AI workspace</p>
           <h1 id="auth-heading">{passwordRecovery ? 'Choose a new password.' : mode === 'sign-in' ? 'Welcome back.' : 'Create your account.'}</h1>
           <p>
             {passwordRecovery
               ? 'Use at least eight characters, then return to your ShelfStudy workspace.'
               : mode === 'sign-in'
-              ? 'Return to your classes, source material, and saved study sessions.'
+              ? 'Return to your saved sessions.'
               : 'Keep your notes and study progress together in one focused workspace.'}
           </p>
-        </div>
+          </div>
 
-        <form className="auth-form" onSubmit={submit}>
+          <form className="auth-form" onSubmit={submit}>
           {!passwordRecovery && (
             <>
               <label htmlFor="auth-email">Email address</label>
@@ -192,11 +193,11 @@ export default function AuthPage({ passwordRecovery = false, onPasswordRecovered
               ? 'Please wait…'
               : passwordRecovery ? 'Save new password' : mode === 'sign-in' ? 'Sign in' : 'Create account'}
           </button>
-        </form>
+          </form>
 
-        {!passwordRecovery && <div className="auth-divider"><span>or continue with</span></div>}
+          {!passwordRecovery && <div className="auth-divider"><span>or continue with</span></div>}
 
-        {!passwordRecovery && <div className="auth-providers" aria-label="Social sign in options">
+          {!passwordRecovery && <div className="auth-providers" aria-label="Social sign in options">
           <button type="button" className="auth-provider" onClick={() => signInWithProvider('google')} disabled={busy}>
             <GoogleMark />
             <span>{busyAction === 'google' ? 'Connecting…' : 'Google'}</span>
@@ -205,16 +206,15 @@ export default function AuthPage({ passwordRecovery = false, onPasswordRecovered
             <AppleMark />
             <span>{busyAction === 'apple' ? 'Connecting…' : 'Apple'}</span>
           </button>
-        </div>}
+          </div>}
 
-        {!passwordRecovery && <p className="auth-switch-copy">
-          {mode === 'sign-in' ? 'New to ShelfStudy?' : 'Already have an account?'}{' '}
-          <button type="button" className="auth-text-button" onClick={changeMode} disabled={busy}>
-            {mode === 'sign-in' ? 'Create an account' : 'Sign in'}
-          </button>
-        </p>}
-
-        <p className="auth-terms">By continuing, you agree to use ShelfStudy for your own learning materials.</p>
+          {!passwordRecovery && <p className="auth-switch-copy">
+            {mode === 'sign-in' ? 'New to ShelfStudy?' : 'Already have an account?'}{' '}
+            <button type="button" className="auth-text-button" onClick={changeMode} disabled={busy}>
+              {mode === 'sign-in' ? 'Create an account' : 'Sign in'}
+            </button>
+          </p>}
+        </div>
       </section>
       <aside className="auth-context" aria-label="ShelfStudy product overview">
         <div>
@@ -222,7 +222,6 @@ export default function AuthPage({ passwordRecovery = false, onPasswordRecovered
           <h2>Study what you actually need to know.</h2>
           <p>Organize class material, build a plan, and return to the same conversation whenever you are ready.</p>
         </div>
-        <p className="auth-context-note">Your workspace stays private to your account.</p>
       </aside>
     </main>
   );
