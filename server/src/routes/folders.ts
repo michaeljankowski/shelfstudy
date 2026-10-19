@@ -1,14 +1,17 @@
 import { Router } from 'express';
 import { supabase } from '../config/supabase.js';
+import { authenticatedUserId } from '../middleware/auth.js';
 
 const router = Router();
 const folderIcons = new Set(['atom', 'flask', 'calculator', 'chart', 'books', 'notebook', 'paw', 'sprout', 'globe', 'monitor']);
 
 router.get('/', async (req, res) => {
   try {
+    const ownerId = authenticatedUserId(req);
     const { data, error } = await supabase
       .from('folders')
       .select('*')
+      .eq('owner_id', ownerId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -22,6 +25,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
+    const ownerId = authenticatedUserId(req);
     const { name, icon } = req.body;
 
     if (!name || typeof name !== 'string') {
@@ -33,7 +37,7 @@ router.post('/', async (req, res) => {
 
     const { data, error } = await supabase
       .from('folders')
-      .insert({ name, icon })
+      .insert({ name, icon, owner_id: ownerId })
       .select()
       .single();
 
@@ -48,12 +52,14 @@ router.post('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
+    const ownerId = authenticatedUserId(req);
     const { id } = req.params;
 
     const { data, error } = await supabase
       .from('folders')
       .select('*')
       .eq('id', id)
+      .eq('owner_id', ownerId)
       .single();
 
     if (error) throw error;
@@ -67,6 +73,7 @@ router.get('/:id', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
+    const ownerId = authenticatedUserId(req);
     const { id } = req.params;
     const { name, icon } = req.body;
 
@@ -85,10 +92,12 @@ router.put('/:id', async (req, res) => {
       .from('folders')
       .update(update)
       .eq('id', id)
+      .eq('owner_id', ownerId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Folder not found' });
 
     res.json(data);
   } catch (error: any) {
@@ -99,14 +108,19 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
+    const ownerId = authenticatedUserId(req);
     const { id } = req.params;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('folders')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('owner_id', ownerId)
+      .select('id')
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Folder not found' });
 
     res.json({ message: 'Folder deleted successfully' });
   } catch (error: any) {

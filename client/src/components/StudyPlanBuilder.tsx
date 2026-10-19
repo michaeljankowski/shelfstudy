@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { FileText, LoaderCircle, Pencil, Sparkles, Upload, X } from 'lucide-react';
-import { sendChatMessage, uploadNote } from '../api';
+import { generateStudyPlanSuggestion, uploadNote } from '../api';
 import { SOURCE_INPUT_ACCEPT, validateSourceForSelection } from '../config/sourceFormats';
 import type { Note, StudyPlanContext } from '../types';
 import './StudyPlanBuilder.css';
@@ -16,6 +16,7 @@ interface BuilderProps {
   onClose: () => void;
   onNoteUploaded: () => void;
   onStartPlan: (draft: StudyPlanDraft) => void;
+  onSavePlan?: (draft: StudyPlanDraft) => void;
 }
 
 function starterOutline(className: string) {
@@ -42,6 +43,7 @@ export default function StudyPlanBuilder({
   onClose,
   onNoteUploaded,
   onStartPlan,
+  onSavePlan,
 }: BuilderProps) {
   const instructionsRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -114,7 +116,7 @@ Return Markdown only. Begin with a clear title, then organize the plan into numb
     setGenerating(true);
     setError('');
     try {
-      const response = await sendChatMessage(classId, prompt, guideNoteId);
+      const response = await generateStudyPlanSuggestion(classId, prompt, guideNoteId);
       setOutline(response.data.reply.trim());
     } catch (err) {
       const message = axios.isAxiosError(err) ? err.response?.data?.error : undefined;
@@ -124,18 +126,20 @@ Return Markdown only. Begin with a clear title, then organize the plan into numb
     }
   };
 
-  const startPlan = () => {
+  const savePlan = () => {
     if (!outline.trim()) {
       setError('Write an outline or generate a suggestion before starting the plan.');
       return;
     }
 
-    onStartPlan({
+    const draft = {
       instructions: instructions.trim(),
       outline: outline.trim(),
       guideNoteId,
       guideName,
-    });
+    };
+    if (onSavePlan) onSavePlan(draft);
+    else onStartPlan(draft);
   };
 
   return (
@@ -266,7 +270,7 @@ Return Markdown only. Begin with a clear title, then organize the plan into numb
           <p>Your outline remains editable after you start the plan.</p>
           <div>
             <button type="button" className="study-plan-cancel" onClick={onClose} disabled={generating || uploading}>Cancel</button>
-            <button type="button" className="study-plan-start" onClick={startPlan} disabled={generating || uploading || !outline.trim()}>Save &amp; start plan</button>
+            <button type="button" className="study-plan-start" onClick={savePlan} disabled={generating || uploading || !outline.trim()}>{onSavePlan ? 'Save plan' : 'Save & start plan'}</button>
           </div>
         </footer>
       </section>

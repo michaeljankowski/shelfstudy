@@ -11,8 +11,10 @@ import {
   Search,
   Timer,
   Trash2,
+  LogOut,
 } from 'lucide-react';
 import './AppShell.css';
+import { useAuth } from '../auth/AuthProvider';
 
 interface Props {
   children: ReactNode;
@@ -22,6 +24,7 @@ interface Props {
 
 export default function AppShell({ children, searchQuery, onSearchChange }: Props) {
   const searchable = onSearchChange !== undefined;
+  const { signOut } = useAuth();
 
   return (
     <div className="app-shell">
@@ -50,6 +53,7 @@ export default function AppShell({ children, searchQuery, onSearchChange }: Prop
           <NavLink to="/productivity/todo" className="app-shell-icon-btn" aria-label="To-do list" title="To-do list — coming soon">
             <NotebookPen size={20} />
           </NavLink>
+          <button type="button" className="app-shell-icon-btn" aria-label="Sign out" title="Sign out" onClick={signOut}><LogOut size={20} /></button>
         </div>
       </header>
       <div className="app-shell-body">

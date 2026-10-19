@@ -11,6 +11,10 @@ import './ChatInterface.css';
 
 interface Props {
   classId: number;
+  sessionId?: string;
+  messages: ChatMessage[];
+  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
+  messagesLoading?: boolean;
   selectedNoteId?: number;
   studyPlan?: StudyPlanContext;
   command:
@@ -25,10 +29,10 @@ interface Props {
   onCommandHandled: () => void;
   onNoteSaved: () => void;
   notice: string | null;
+  onClearChat: () => Promise<void>;
 }
 
-export default function ChatInterface({ classId, selectedNoteId, studyPlan, command, onCommandHandled, onNoteSaved, notice }: Props) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+export default function ChatInterface({ classId, sessionId, messages, setMessages, messagesLoading = false, selectedNoteId, studyPlan, command, onCommandHandled, onNoteSaved, notice, onClearChat }: Props) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -41,7 +45,7 @@ export default function ChatInterface({ classId, selectedNoteId, studyPlan, comm
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || sending) return;
+    if (!input.trim() || sending || !sessionId) return;
 
     const userMessage: ChatMessage = {
       role: 'user',
@@ -54,7 +58,7 @@ export default function ChatInterface({ classId, selectedNoteId, studyPlan, comm
     setError('');
 
     try {
-      const response = await sendChatMessage(classId, input, selectedNoteId, studyPlan, messages.slice(-12));
+      const response = await sendChatMessage(sessionId, input, crypto.randomUUID(), selectedNoteId);
       const aiMessage: ChatMessage = {
         role: 'assistant',
         content: response.data.reply,
@@ -158,12 +162,12 @@ export default function ChatInterface({ classId, selectedNoteId, studyPlan, comm
   };
 
   const sendPrompt = async (prompt: string, displayMessage = prompt) => {
-    if (sending) return;
+    if (sending || !sessionId) return;
     setSending(true);
     setError('');
     setMessages((prev) => [...prev, { role: 'user', content: displayMessage, timestamp: new Date() }]);
     try {
-      const response = await sendChatMessage(classId, prompt, selectedNoteId, studyPlan, messages.slice(-12));
+      const response = await sendChatMessage(sessionId, prompt, crypto.randomUUID(), selectedNoteId);
       setMessages((prev) => [...prev, { role: 'assistant', content: response.data.reply, timestamp: new Date() }]);
     } catch (err) {
       const message = axios.isAxiosError(err) ? err.response?.data?.error : undefined;
@@ -198,9 +202,9 @@ export default function ChatInterface({ classId, selectedNoteId, studyPlan, comm
     } finally { setSavedMessage(null); }
   };
 
-  const handleClear = () => {
+  const handleClear = async () => {
     if (confirm('Clear chat history?')) {
-      setMessages([]);
+      await onClearChat();
       setError('');
     }
   };
@@ -216,7 +220,7 @@ export default function ChatInterface({ classId, selectedNoteId, studyPlan, comm
       {error && <div className="error">{error}</div>}
 
       <div className="chat-messages">
-        {messages.length === 0 ? (
+        {messagesLoading ? <div className="empty-state chat-empty-state"><p>Loading conversation…</p></div> : messages.length === 0 ? (
             <div className="empty-state chat-empty-state">
             <h3>Ready when you are</h3>
             <p>Ask about your sources, create a summary, or take a practice quiz.</p>

@@ -70,13 +70,15 @@ const SEARCH_STOP_WORDS = new Set([
 export async function askAboutNotes(
   message: string,
   classId: number,
+  ownerId: string,
   { noteId, studyPlan, history = [] }: ChatOptions = {},
 ): Promise<string> {
   try {
     let query = supabase
       .from('notes')
       .select('id, filename, extracted_text, file_type, image_url')
-      .eq('class_id', classId);
+      .eq('class_id', classId)
+      .eq('owner_id', ownerId);
     if (noteId !== undefined && !studyPlan) query = query.eq('id', noteId);
 
     const { data: notes, error } = await query;
@@ -221,11 +223,12 @@ function buildChatContext(sources: ChatSource[]): string {
 
 export async function generateQuiz(
   classId: number,
+  ownerId: string,
   numQuestions: number = 5
 ): Promise<string[]> {
   try {
     const { data: notes, error } = await supabase
-      .from('notes').select('*').eq('class_id', classId);
+      .from('notes').select('*').eq('class_id', classId).eq('owner_id', ownerId);
 
     if (error) throw error;
     if (!notes || notes.length === 0) return ['No notes found for this class.'];
@@ -271,6 +274,7 @@ export async function generateQuiz(
 
 export async function generateFlashcards(
   classId: number,
+  ownerId: string,
   options: {
     numCards: number;
     noteId?: number;
@@ -282,7 +286,8 @@ export async function generateFlashcards(
   let query = supabase
     .from('notes')
     .select('id, extracted_text, file_type, image_url')
-    .eq('class_id', classId);
+    .eq('class_id', classId)
+    .eq('owner_id', ownerId);
 
   if (noteId) query = query.eq('id', noteId);
 
@@ -291,7 +296,7 @@ export async function generateFlashcards(
   if (!notes?.length) throw new Error('No notes found for this class.');
 
   if (noteId && notes.length === 1 && !hasUsefulText(notes[0].extracted_text)) {
-    notes[0].extracted_text = await getOrCreateOcrText(notes[0]);
+    notes[0].extracted_text = await getOrCreateOcrText(notes[0], ownerId);
   }
 
   const sourceText = notes
@@ -384,17 +389,17 @@ function hasUsefulText(value: string | null): value is string {
   return withoutPageMarkers.length >= 20;
 }
 
-function getOrCreateOcrText(source: FlashcardSource): Promise<string> {
+function getOrCreateOcrText(source: FlashcardSource, ownerId: string): Promise<string> {
   const pendingRequest = ocrRequests.get(source.id);
   if (pendingRequest) return pendingRequest;
 
-  const request = extractVisualSourceText(source)
+  const request = extractVisualSourceText(source, ownerId)
     .finally(() => ocrRequests.delete(source.id));
   ocrRequests.set(source.id, request);
   return request;
 }
 
-async function extractVisualSourceText(source: FlashcardSource): Promise<string> {
+async function extractVisualSourceText(source: FlashcardSource, ownerId: string): Promise<string> {
   const isImage = source.file_type.startsWith('image/');
   const isPdf = source.file_type === 'application/pdf';
   if (!isImage && !isPdf) {
@@ -427,7 +432,8 @@ async function extractVisualSourceText(source: FlashcardSource): Promise<string>
   const { error } = await supabase
     .from('notes')
     .update({ extracted_text: extractedText })
-    .eq('id', source.id);
+    .eq('id', source.id)
+    .eq('owner_id', ownerId);
 
   if (error) console.error('Could not save OCR text:', error.message);
   return extractedText;
