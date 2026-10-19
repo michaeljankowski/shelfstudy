@@ -10,8 +10,9 @@ import { useAuth } from './auth/AuthProvider';
 import AuthPage from './routes/AuthPage';
 
 function App() {
-  const { session, loading } = useAuth();
+  const { session, loading, passwordRecovery, completePasswordRecovery } = useAuth();
   if (loading) return <main aria-busy="true">Loading ShelfStudy…</main>;
+  if (passwordRecovery) return <AuthPage passwordRecovery onPasswordRecovered={completePasswordRecovery} />;
   if (!session) return <AuthPage />;
   return (
     <BrowserRouter>

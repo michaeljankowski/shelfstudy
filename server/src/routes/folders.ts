@@ -94,9 +94,10 @@ router.put('/:id', async (req, res) => {
       .eq('id', id)
       .eq('owner_id', ownerId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Folder not found' });
 
     res.json(data);
   } catch (error: any) {
@@ -110,13 +111,16 @@ router.delete('/:id', async (req, res) => {
     const ownerId = authenticatedUserId(req);
     const { id } = req.params;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('folders')
       .delete()
       .eq('id', id)
-      .eq('owner_id', ownerId);
+      .eq('owner_id', ownerId)
+      .select('id')
+      .maybeSingle();
 
     if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Folder not found' });
 
     res.json({ message: 'Folder deleted successfully' });
   } catch (error: any) {

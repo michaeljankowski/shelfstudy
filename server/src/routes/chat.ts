@@ -69,6 +69,9 @@ router.post('/sessions', async (req, res) => {
 router.get('/sessions/:id/messages', async (req, res) => {
   const ownerId = authenticatedUserId(req);
   if (!UUID.test(req.params.id)) return res.status(400).json({ error: 'Invalid session ID' });
+  const { data: session } = await supabase.from('chat_sessions').select('id')
+    .eq('id', req.params.id).eq('owner_id', ownerId).maybeSingle();
+  if (!session) return res.status(404).json({ error: 'Conversation not found' });
   const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 100);
   let query = supabase.from('chat_messages').select('*').eq('session_id', req.params.id)
     .eq('owner_id', ownerId).eq('status', 'complete').order('id', { ascending: false }).limit(limit);

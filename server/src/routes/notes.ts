@@ -209,7 +209,7 @@ router.delete('/:id', async (req, res) => {
       .eq('owner_id', ownerId)
       .single();
 
-    if (fetchError) throw fetchError;
+    if (fetchError || !note) return res.status(404).json({ error: 'Note not found' });
 
     const { error: deleteError } = await supabase
       .from('notes')
