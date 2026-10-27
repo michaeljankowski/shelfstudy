@@ -48,6 +48,7 @@ build/
 .mcp.json
 .planning/
 CLAUDE.md
+AGENTS.md
 DESIGNER_BRIEF.md
 
 # Private local development tooling and its artifacts

@@ -15,7 +15,6 @@ export interface Class {
   export interface Note {
     id: number;
     class_id: number;
-    image_url: string;
     file_type?: string;
     filename?: string;
     extracted_text?: string | null;
