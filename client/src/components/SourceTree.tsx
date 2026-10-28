@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronDown, ChevronLeft, ChevronRight, ExternalLink, FileTe
 import { getOfficePreview, uploadNote } from '../api';
 import { SOURCE_INPUT_ACCEPT, validateSourceForSelection } from '../config/sourceFormats';
 import { Note, OfficePreview } from '../types';
+import { useNoteFileUrl } from '../utils/useNoteFileUrl';
 import RichNoteEditor from './RichNoteEditor';
 import './SourceTree.css';
 
@@ -85,6 +86,10 @@ function SourcePreview({ note, onClose }: { note: Note; onClose: () => void }) {
   const isOffice = note.file_type === 'application/vnd.ms-powerpoint'
     || note.file_type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
     || note.file_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const { url: fileUrl, failed: fileFailed } = useNoteFileUrl(note.id);
+  const fileLoading = fileFailed
+    ? <div className="source-preview-unavailable"><FileText size={42} /><p>This file could not be opened. Close the preview and try again.</p></div>
+    : <div className="source-preview-unavailable"><LoaderCircle size={28} className="source-tree-spin" /><p>Loading…</p></div>;
   const [htmlContent, setHtmlContent] = useState<string | null>(null);
   const [htmlError, setHtmlError] = useState(false);
   const [officePreview, setOfficePreview] = useState<OfficePreview | null>(null);
@@ -101,9 +106,9 @@ function SourcePreview({ note, onClose }: { note: Note; onClose: () => void }) {
   }, [onClose]);
 
   useEffect(() => {
-    if (!isHtml) return;
+    if (!isHtml || !fileUrl) return;
     const controller = new AbortController();
-    fetch(note.image_url, { signal: controller.signal })
+    fetch(fileUrl, { signal: controller.signal })
       .then((response) => {
         if (!response.ok) throw new Error('Could not load note');
         return response.text();
@@ -113,7 +118,7 @@ function SourcePreview({ note, onClose }: { note: Note; onClose: () => void }) {
         if (error instanceof Error && error.name !== 'AbortError') setHtmlError(true);
       });
     return () => controller.abort();
-  }, [isHtml, note.image_url]);
+  }, [isHtml, fileUrl]);
 
   useEffect(() => {
     if (!isOffice) return;
@@ -135,18 +140,18 @@ function SourcePreview({ note, onClose }: { note: Note; onClose: () => void }) {
             <h2 id="source-preview-title">{filename}</h2>
           </div>
           <div className="source-preview-actions">
-            <a href={note.image_url} target="_blank" rel="noreferrer" aria-label={`Open ${filename} in a new tab`} title="Open in a new tab"><ExternalLink size={19} /></a>
+            <a href={fileUrl ?? undefined} aria-disabled={!fileUrl} target="_blank" rel="noreferrer" aria-label={`Open ${filename} in a new tab`} title="Open in a new tab"><ExternalLink size={19} /></a>
             <button type="button" onClick={onClose} aria-label="Close preview"><X size={22} /></button>
           </div>
         </header>
         <div className="source-preview-content">
           {isImage ? (
-            <img src={note.image_url} alt={filename} />
+            fileUrl ? <img src={fileUrl} alt={filename} /> : fileLoading
           ) : isPdf ? (
-            <iframe src={note.image_url} title={filename} />
+            fileUrl ? <iframe src={fileUrl} title={filename} /> : fileLoading
           ) : isHtml && htmlContent ? (
             <iframe srcDoc={htmlContent} title={filename} sandbox="" />
-          ) : isHtml && !htmlError ? (
+          ) : isHtml && !htmlError && !fileFailed ? (
             <div className="source-preview-unavailable"><LoaderCircle size={28} className="source-tree-spin" /><p>Loading note…</p></div>
           ) : isOffice && officePages.length > 0 ? (
             <iframe srcDoc={officePages[currentPage]} title={`${filename}, ${pageLabel} ${currentPage + 1}`} sandbox="" />
@@ -158,7 +163,7 @@ function SourcePreview({ note, onClose }: { note: Note; onClose: () => void }) {
             <div className="source-preview-unavailable">
               <FileText size={42} />
               <p>A browser preview is not available for this file.</p>
-              <a href={note.image_url} target="_blank" rel="noreferrer">Open the original file</a>
+              {fileUrl && <a href={fileUrl} target="_blank" rel="noreferrer">Open the original file</a>}
             </div>
           )}
         </div>
