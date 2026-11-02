@@ -5,10 +5,13 @@ import { MAX_SOURCE_BYTES } from '../config/sourceFormats.js';
 import { createOfficePreview } from '../services/officePreview.js';
 import { prepareSource } from '../services/sourceIngestion.js';
 import { validateUploadedSource } from '../services/sourceValidation.js';
-import { deleteImage, downloadSource, uploadSource } from '../services/storage.js';
+import { BROWSER_URL_TTL_SECONDS, deleteImage, downloadSource, signSourceUrl, uploadSource } from '../services/storage.js';
 import { authenticatedUserId } from '../middleware/auth.js';
 
 const router = Router();
+
+// Columns we send back. image_url is left out on purpose.
+const NOTE_COLUMNS = 'id, class_id, file_type, filename, extracted_text, created_at';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -98,7 +101,7 @@ router.post('/', admitUpload, receiveSource, async (req, res) => {
         filename: prepared.filename,
         extracted_text: prepared.extractedText,
       })
-      .select()
+      .select(NOTE_COLUMNS)
       .single();
 
     if (error) {
@@ -114,7 +117,7 @@ router.post('/', admitUpload, receiveSource, async (req, res) => {
   } catch (error: any) {
     console.error('Error creating note:', error.message);
     res.status(500).json({ 
-      error: `Failed to create note: ${error.message}` 
+      error: 'Failed to create note' 
     });
   }
 });
@@ -128,7 +131,7 @@ router.get('/class/:classId', async (req, res) => {
 
     const { data, error } = await supabase
       .from('notes')
-      .select('*')
+      .select(NOTE_COLUMNS)
       .eq('class_id', classId)
       .eq('owner_id', ownerId)
       .order('created_at', { ascending: false });
@@ -176,6 +179,33 @@ router.get('/:id/preview', async (req, res) => {
   }
 });
 
+router.get('/:id/file', async (req, res) => {
+  try {
+    const ownerId = authenticatedUserId(req);
+    const id = Number(req.params.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'Note id must be a positive integer' });
+    }
+
+    const { data: note } = await supabase
+      .from('notes')
+      .select('image_url')
+      .eq('id', id)
+      .eq('owner_id', ownerId)
+      .maybeSingle();
+
+    if (!note) return res.status(404).json({ error: 'Note not found' });
+
+    const url = await signSourceUrl(note.image_url, BROWSER_URL_TTL_SECONDS);
+    // Send seconds left, not a time, because the browser clock can be off.
+    res.set('Cache-Control', 'no-store');
+    res.json({ url, expiresIn: BROWSER_URL_TTL_SECONDS });
+  } catch (error: any) {
+    console.error('Error signing source URL:', error.message);
+    res.status(500).json({ error: 'Could not open this source' });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const ownerId = authenticatedUserId(req);
@@ -183,7 +213,7 @@ router.get('/:id', async (req, res) => {
 
     const { data, error } = await supabase
       .from('notes')
-      .select('*')
+      .select(NOTE_COLUMNS)
       .eq('id', id)
       .eq('owner_id', ownerId)
       .single();

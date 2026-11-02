@@ -65,6 +65,9 @@ export const deleteNote = (noteId: number) =>
 export const getOfficePreview = (noteId: number) =>
   axios.get<OfficePreview>(`${API_BASE}/notes/${noteId}/preview`);
 
+export const getNoteFileUrl = (noteId: number) =>
+  axios.get<{ url: string; expiresIn: number }>(`${API_BASE}/notes/${noteId}/file`);
+
 export const sendChatMessage = (
   sessionId: string,
   message: string,

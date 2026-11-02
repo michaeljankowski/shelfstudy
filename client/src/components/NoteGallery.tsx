@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Note } from '../types';
 import { getNotesByClass, deleteNote } from '../api';
+import { useNoteFileUrl } from '../utils/useNoteFileUrl';
 import './NoteComponents.css';
+
+function NoteThumbnail({ noteId }: { noteId: number }) {
+  const { url } = useNoteFileUrl(noteId);
+  return url ? <img src={url} alt="Note" className="note-image" /> : null;
+}
 
 interface Props {
   classId: number;
@@ -72,11 +78,7 @@ export default function NoteGallery({ classId, onNoteClick, refreshTrigger }: Pr
           onClick={() => onNoteClick(note)}
         >
           <div className="note-image-wrapper">
-            <img
-              src={note.image_url}
-              alt="Note"
-              className="note-image"
-            />
+            <NoteThumbnail noteId={note.id} />
           </div>
           <div className="note-info">
             <div className="note-date">

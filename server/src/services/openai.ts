@@ -3,6 +3,7 @@ import { supabase } from '../config/supabase.js';
 import dotenv from 'dotenv';
 import { Flashcard } from '../types/index.js';
 import { normalizeExtractedText } from './sourceText.js';
+import { MODEL_FETCH_URL_TTL_SECONDS, signSourceUrl } from './storage.js';
 
 interface GeneratedFlashcard extends Flashcard {
   evidence: string;
@@ -119,7 +120,7 @@ export async function askAboutNotes(
     for (const source of visualSources) {
       userContent.push(
         { type: 'text', text: `Visual source: ${source.filename ?? 'Untitled'}` },
-        { type: 'image_url', image_url: { url: source.image_url } },
+        { type: 'image_url', image_url: { url: await signSourceUrl(source.image_url, MODEL_FETCH_URL_TTL_SECONDS) } },
       );
     }
 
@@ -145,11 +146,12 @@ export async function askAboutNotes(
 
     return response.choices[0]?.message?.content || 'No response generated';
   } catch (error: any) {
-    console.error('OpenAI error:', error);
+    // Only log the status. The full error can contain the signed link.
+    console.error('OpenAI error:', error.status ?? error.code ?? error.name);
     if (error.status === 401) return 'Invalid OpenAI API key. Please check your .env file.';
     if (error.status === 429) return 'Rate limit reached. Please try again in a moment.';
     if (error.status === 400) return 'Bad request to OpenAI. The file might be too large or corrupted.';
-    return `AI service error: ${error.message}`;
+    return 'The AI service ran into an error. Please try again.';
   }
 }
 
@@ -249,7 +251,7 @@ export async function generateQuiz(
     } else {
       userContent = [
         { type: 'text', text: 'Create quiz questions from these notes:' },
-        { type: 'image_url', image_url: { url: note.image_url } }
+        { type: 'image_url', image_url: { url: await signSourceUrl(note.image_url, MODEL_FETCH_URL_TTL_SECONDS) } }
       ];
     }
 
@@ -267,8 +269,8 @@ export async function generateQuiz(
 
     return [response.choices[0]?.message?.content || 'Could not generate quiz'];
   } catch (error: any) {
-    console.error('Quiz generation error:', error.message);
-    return [`Failed to generate quiz: ${error.message}`];
+    console.error('Quiz generation error:', error.status ?? error.code ?? error.name);
+    return ['Failed to generate quiz. Please try again.'];
   }
 }
 
@@ -406,9 +408,10 @@ async function extractVisualSourceText(source: FlashcardSource, ownerId: string)
     throw new Error('This source does not contain readable text and cannot be OCR processed.');
   }
 
+  const signedUrl = await signSourceUrl(source.image_url, MODEL_FETCH_URL_TTL_SECONDS);
   const visualInput = isImage
-    ? { type: 'input_image' as const, image_url: source.image_url, detail: 'high' as const }
-    : { type: 'input_file' as const, file_url: source.image_url, detail: 'auto' as const };
+    ? { type: 'input_image' as const, image_url: signedUrl, detail: 'high' as const }
+    : { type: 'input_file' as const, file_url: signedUrl, detail: 'auto' as const };
 
   const response = await openai.responses.create({
     model: 'gpt-4o-mini',
