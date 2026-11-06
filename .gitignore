@@ -21,7 +21,6 @@ Thumbs.db
 .env*.local
 
 node_modules/
-package-lock.json
 
 uploads/
 temp/
@@ -42,6 +41,8 @@ build/
 
 # Playwright CLI session artifacts (snapshots, console logs)
 .playwright-cli/
+test-results/
+playwright-report/
 
 # Local tooling
 .playwright-mcp/
